@@ -1,6 +1,6 @@
 # UpaHealth — AI Procurement Intelligence Platform
 
-🌐 **Live:** [upa-health-ekawuv6av-anshul000001s-projects.vercel.app](https://upa-health-ekawuv6av-anshul000001s-projects.vercel.app)
+🌐 **Live:** [upahealth.vercel.app](https://upahealth.vercel.app)
 📦 **Repo:** [github.com/Anshul000001/UpaHealth](https://github.com/Anshul000001/UpaHealth)
 
 AI-enabled healthcare sourcing, quotation, procurement, and export intelligence platform for surgical consumables. Targets Indian hospitals and East Africa / GCC export markets.
