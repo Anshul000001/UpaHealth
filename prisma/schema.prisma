@@ -1,0 +1,212 @@
+// UpaHealth Procurement System — Database Schema
+// PostgreSQL via Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  ADMIN
+  SALES_USER
+  VIEWER
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum LeadType {
+  HOSPITAL
+  GOVERNMENT
+  DISTRIBUTOR
+  HOSPITAL_CHAIN
+}
+
+// ============================================
+// USER & AUTH
+// ============================================
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(SALES_USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions   Session[]
+  quotations Quotation[]
+
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ============================================
+// SUPPLIER
+// ============================================
+
+model Supplier {
+  id                   String   @id @default(cuid())
+  name                 String
+  location             String
+  contactPhone         String
+  email                String
+  certifications       String[] // ISO 13485, CE Mark, WHO GMP, etc.
+  productCategories    String[] // Product category names
+  reliabilityScore     Float    @default(0)
+  trustScore           Float    @default(0)
+  totalOrders          Int      @default(0)
+  onTimeDelivery       Float    @default(0) // Percentage 0-100
+  qualityRejectionRate Float    @default(0) // Percentage 0-100
+  archived             Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  products Product[]
+
+  @@map("suppliers")
+}
+
+// ============================================
+// PRODUCT
+// ============================================
+
+model Product {
+  id               String   @id @default(cuid())
+  name             String
+  category         String
+  sku              String   @unique
+  costPrice        Float
+  sellingPrice     Float // INR
+  exportPrice      Float // USD
+  moq              Int
+  unit             String
+  supplierId       String
+  leadTime         String
+  certifications   String[]
+  exportAvailable  Boolean  @default(true)
+  stock            Int      @default(0)
+  competitorPriceMin Float? // For AI pricing suggestions
+  competitorPriceMax Float?
+  targetMargin     Float?   // Category-specific target margin %
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  supplier  Supplier            @relation(fields: [supplierId], references: [id])
+  lineItems QuotationLineItem[]
+
+  @@map("products")
+}
+
+// ============================================
+// QUOTATION
+// ============================================
+
+model Quotation {
+  id            String          @id @default(cuid())
+  quotationId   String          @unique // UH-Q-YYYYMMDD-NNN format
+  buyerName     String
+  buyerEmail    String?
+  buyerAddress  String?
+  buyerCountry  String?
+  currency      String          @default("INR")
+  validityDays  Int             @default(30)
+  status        QuotationStatus @default(DRAFT)
+  subtotal      Float           @default(0)
+  totalDiscount Float           @default(0)
+  totalGST      Float           @default(0)
+  freight       Float           @default(0)
+  grandTotal    Float           @default(0)
+  notes         String?
+  createdById   String
+  leadId        String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  expiresAt     DateTime?
+
+  createdBy User              @relation(fields: [createdById], references: [id])
+  lead      Lead?             @relation(fields: [leadId], references: [id])
+  lineItems QuotationLineItem[]
+
+  @@map("quotations")
+}
+
+model QuotationLineItem {
+  id            String @id @default(cuid())
+  quotationId   String
+  productId     String
+  productName   String
+  quantity      Int
+  unitPrice     Float
+  costPrice     Float
+  gstRate       Float  @default(0)
+  discount      Float  @default(0) // Percentage
+  lineTotal     Float  @default(0)
+  marginPercent Float  @default(0)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@map("quotation_line_items")
+}
+
+// ============================================
+// CRM / LEADS
+// ============================================
+
+model Lead {
+  id              String    @id @default(cuid())
+  name            String
+  type            LeadType
+  contactPerson   String
+  email           String?
+  phone           String?
+  stage           String    @default("Lead") // Pipeline stage name
+  estimatedValue  Float     @default(0)
+  products        String[]  // Associated product category names
+  lastContactDate DateTime?
+  nextFollowUp    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  quotations  Quotation[]
+  transitions LeadStageTransition[]
+
+  @@map("leads")
+}
+
+model LeadStageTransition {
+  id        String   @id @default(cuid())
+  leadId    String
+  fromStage String
+  toStage   String
+  changedAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("lead_stage_transitions")
+}
