@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail, buildQuotationEmail, buildFollowUpEmail } from "@/lib/email";
+import { requireAuth, apiHandler } from "@/lib/rbac";
 import { z } from "zod";
 
 const sendEmailSchema = z.object({
@@ -15,65 +16,59 @@ const sendEmailSchema = z.object({
   templateData: z.record(z.string(), z.unknown()).optional(),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const parsed = sendEmailSchema.safeParse(body);
+export const POST = apiHandler(async (request) => {
+  await requireAuth("write");
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid request", details: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
+  const body = await request.json();
+  const parsed = sendEmailSchema.safeParse(body);
 
-    const { to, subject, text, html, cc, bcc, replyTo, template, templateData } = parsed.data;
-
-    let emailSubject = subject;
-    let emailHtml = html;
-
-    // Use templates if specified
-    if (template === "quotation" && templateData) {
-      const built = buildQuotationEmail({
-        buyerName: templateData.buyerName as string,
-        quotationId: templateData.quotationId as string,
-        grandTotal: templateData.grandTotal as number,
-        currency: (templateData.currency as string) || "INR",
-        validityDays: (templateData.validityDays as number) || 30,
-      });
-      emailSubject = built.subject;
-      emailHtml = built.html;
-    } else if (template === "follow-up" && templateData) {
-      const built = buildFollowUpEmail({
-        contactName: templateData.contactName as string,
-        leadName: templateData.leadName as string,
-        message: templateData.message as string | undefined,
-      });
-      emailSubject = built.subject;
-      emailHtml = built.html;
-    }
-
-    const result = await sendEmail({
-      to,
-      subject: emailSubject,
-      text,
-      html: emailHtml,
-      cc,
-      bcc,
-      replyTo,
-    });
-
-    return NextResponse.json({
-      success: true,
-      messageId: result.messageId,
-      accepted: result.accepted,
-      rejected: result.rejected,
-    });
-  } catch (error) {
-    console.error("Email send error:", error);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Failed to send email", message: (error as Error).message },
-      { status: 500 }
+      { success: false, error: "Invalid request", details: parsed.error.flatten() },
+      { status: 400 }
     );
   }
-}
+
+  const { to, subject, text, html, cc, bcc, replyTo, template, templateData } = parsed.data;
+
+  let emailSubject = subject;
+  let emailHtml = html;
+
+  // Use templates if specified
+  if (template === "quotation" && templateData) {
+    const built = buildQuotationEmail({
+      buyerName: templateData.buyerName as string,
+      quotationId: templateData.quotationId as string,
+      grandTotal: templateData.grandTotal as number,
+      currency: (templateData.currency as string) || "INR",
+      validityDays: (templateData.validityDays as number) || 30,
+    });
+    emailSubject = built.subject;
+    emailHtml = built.html;
+  } else if (template === "follow-up" && templateData) {
+    const built = buildFollowUpEmail({
+      contactName: templateData.contactName as string,
+      leadName: templateData.leadName as string,
+      message: templateData.message as string | undefined,
+    });
+    emailSubject = built.subject;
+    emailHtml = built.html;
+  }
+
+  const result = await sendEmail({
+    to,
+    subject: emailSubject,
+    text,
+    html: emailHtml,
+    cc,
+    bcc,
+    replyTo,
+  });
+
+  return NextResponse.json({
+    success: true,
+    messageId: result.messageId,
+    accepted: result.accepted,
+    rejected: result.rejected,
+  });
+});
