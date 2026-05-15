@@ -12,11 +12,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "UpaHealth — AI Procurement Intelligence Platform",
+    default: "UpaHealth — Your Path to Wellness",
     template: "%s · UpaHealth",
   },
   description:
-    "India's first AI-enabled healthcare sourcing, quotation, procurement, and export intelligence platform.",
+    "UpaHealth — AI-enabled healthcare sourcing, quotation, procurement, and export intelligence platform. Your path to wellness.",
   keywords: [
     "healthcare",
     "procurement",
@@ -24,12 +24,16 @@ export const metadata: Metadata = {
     "medical supplies",
     "surgical consumables",
     "export",
+    "wellness",
   ],
   metadataBase: new URL("http://localhost:3000"),
+  icons: {
+    apple: "/logo-mark.svg",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
+  themeColor: "#0d9488",
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,

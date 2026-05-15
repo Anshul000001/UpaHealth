@@ -30,45 +30,118 @@ interface QuotationData {
   notes: string;
 }
 
-export function generateQuotationPDF(data: QuotationData): void {
+/** Inline SVG of the UpaHealth mark (kept here so PDFs work offline/SSR-safe). */
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="0.5" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#1e40af"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="0.5" stop-color="#06b6d4"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+  </defs>
+  <path d="M43 5 L57 5 A8 8 0 0 1 65 13 L65 35 L87 35 A8 8 0 0 1 95 43 L95 57 A8 8 0 0 1 87 65 L65 65 L65 87 A8 8 0 0 1 57 95 L43 95 A8 8 0 0 1 35 87 L35 65 L13 65 A8 8 0 0 1 5 57 L5 43 A8 8 0 0 1 13 35 L35 35 L35 13 A8 8 0 0 1 43 5 Z" fill="none" stroke="url(#g1)" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M50 22 C 70 36 70 64 50 80 C 30 64 30 36 50 22 Z" fill="url(#g2)"/>
+  <path d="M50 28 C 50 40 50 60 50 74" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round" fill="none"/>
+</svg>`;
+
+/** Rasterize the brand SVG to a PNG data URL using a canvas (browser-only). */
+async function getLogoDataUrl(pixelSize = 256): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const blob = new Blob([LOGO_SVG], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    const loaded: Promise<HTMLImageElement> = new Promise((resolve, reject) => {
+      img.onload = () => resolve(img);
+      img.onerror = (e) => reject(e);
+      img.src = url;
+    });
+    const el = await loaded;
+    const canvas = document.createElement("canvas");
+    canvas.width = pixelSize;
+    canvas.height = pixelSize;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.clearRect(0, 0, pixelSize, pixelSize);
+    ctx.drawImage(el, 0, 0, pixelSize, pixelSize);
+    URL.revokeObjectURL(url);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
+export async function generateQuotationPDF(data: QuotationData): Promise<void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
 
-  // Colors
-  const primaryColor: [number, number, number] = [6, 182, 212]; // cyan-500
+  // Brand palette — aligned to the new UpaHealth logo (green → teal → deep blue).
+  const brandTeal: [number, number, number] = [13, 148, 136]; // teal-600
+  const brandBlue: [number, number, number] = [30, 58, 138]; // blue-900
+  const brandGreen: [number, number, number] = [34, 197, 94]; // green-500
   const darkColor: [number, number, number] = [15, 23, 42]; // slate-900
   const textColor: [number, number, number] = [30, 41, 59]; // slate-800
   const lightGray: [number, number, number] = [148, 163, 184]; // slate-400
 
   // === HEADER SECTION ===
-  // Top accent bar
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 4, "F");
+  // Top accent bar — teal → blue tri-segment for the brand gradient feel.
+  const segW = pageWidth / 3;
+  doc.setFillColor(...brandGreen);
+  doc.rect(0, 0, segW, 4, "F");
+  doc.setFillColor(...brandTeal);
+  doc.rect(segW, 0, segW, 4, "F");
+  doc.setFillColor(...brandBlue);
+  doc.rect(segW * 2, 0, pageWidth - segW * 2, 4, "F");
 
-  // Company Logo area
-  doc.setFillColor(15, 23, 42);
-  doc.roundedRect(margin, 12, 32, 32, 3, 3, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("UH", margin + 16, 32, { align: "center" });
+  // Logo block — embed the rasterized SVG mark on a white panel for contrast.
+  const logoDataUrl = await getLogoDataUrl(256);
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(...brandTeal);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(margin, 12, 32, 32, 4, 4, "FD");
+  if (logoDataUrl) {
+    doc.addImage(logoDataUrl, "PNG", margin + 2, 14, 28, 28, undefined, "FAST");
+  } else {
+    // Fallback: stylized cross + leaf in flat brand colors if rasterization fails.
+    doc.setFillColor(...brandTeal);
+    doc.roundedRect(margin + 6, 18, 20, 6, 1.5, 1.5, "F");
+    doc.roundedRect(margin + 13, 11, 6, 20, 1.5, 1.5, "F");
+    doc.setTextColor(...brandBlue);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Upa", margin + 16, 38, { align: "center" });
+  }
 
-  // Company Name
-  doc.setTextColor(...darkColor);
+  // Wordmark — "Upa" in deep blue, "Health" in teal, matching the brand.
+  doc.setTextColor(...brandBlue);
   doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
-  doc.text("UpaHealth Supplies", margin + 38, 24);
+  doc.text("Upa", margin + 38, 24);
+  const upaW = doc.getTextWidth("Upa");
+  doc.setTextColor(...brandTeal);
+  doc.text("Health", margin + 38 + upaW, 24);
 
-  // Tagline
+  // Tagline — exact phrasing from the brand mark.
+  doc.setTextColor(...brandTeal);
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "bold");
+  doc.text("YOUR PATH TO WELLNESS", margin + 38, 30, { charSpace: 1.2 });
+
   doc.setTextColor(...lightGray);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text("AI-Enabled Healthcare Sourcing Intelligence", margin + 38, 32);
-  doc.text(COMPANY_INFO.email, margin + 38, 38);
+  doc.text("AI-Enabled Healthcare Sourcing Intelligence", margin + 38, 36);
+  doc.text(COMPANY_INFO.email, margin + 38, 41);
 
-  // QUOTATION title - right aligned
-  doc.setTextColor(...primaryColor);
+  // QUOTATION title — right aligned, brand-blue.
+  doc.setTextColor(...brandBlue);
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
   doc.text("QUOTATION", pageWidth - margin, 24, { align: "right" });
@@ -81,8 +154,8 @@ export function generateQuotationPDF(data: QuotationData): void {
   doc.text(`Date: ${new Date().toLocaleDateString("en-IN")}`, pageWidth - margin, 38, { align: "right" });
   doc.text(`Valid for: ${data.validityDays} days`, pageWidth - margin, 44, { align: "right" });
 
-  // Divider line
-  doc.setDrawColor(...primaryColor);
+  // Divider line — brand teal.
+  doc.setDrawColor(...brandTeal);
   doc.setLineWidth(0.5);
   doc.line(margin, 50, pageWidth - margin, 50);
 
@@ -142,7 +215,7 @@ export function generateQuotationPDF(data: QuotationData): void {
       body: tableData,
       theme: "plain",
       headStyles: {
-        fillColor: [15, 23, 42],
+        fillColor: brandBlue,
         textColor: [255, 255, 255],
         fontSize: 8,
         fontStyle: "bold",
@@ -154,7 +227,7 @@ export function generateQuotationPDF(data: QuotationData): void {
         cellPadding: 4,
       },
       alternateRowStyles: {
-        fillColor: [248, 250, 252],
+        fillColor: [240, 253, 250], // teal-50
       },
       columnStyles: {
         0: { cellWidth: 10, halign: "center" },
@@ -168,7 +241,6 @@ export function generateQuotationPDF(data: QuotationData): void {
       margin: { left: margin, right: margin },
     });
 
-    // Get the Y position after the table
     yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   } else {
     doc.setTextColor(...lightGray);
@@ -181,9 +253,11 @@ export function generateQuotationPDF(data: QuotationData): void {
   const totalsX = pageWidth - margin - 70;
   const totalsWidth = 70;
 
-  // Background for totals
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(totalsX - 5, yPos, totalsWidth + 10, 65, 2, 2, "F");
+  // Soft brand-tinted background for totals card.
+  doc.setFillColor(240, 253, 250); // teal-50
+  doc.setDrawColor(...brandTeal);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(totalsX - 5, yPos, totalsWidth + 10, 65, 2, 2, "FD");
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
@@ -206,12 +280,12 @@ export function generateQuotationPDF(data: QuotationData): void {
   drawTotalLine("GST:", `${data.currencySymbol}${data.totalGST.toFixed(2)}`, yPos + 30);
   drawTotalLine("Freight:", `${data.currencySymbol}${data.freight.toFixed(2)}`, yPos + 40);
 
-  // Grand total line
-  doc.setDrawColor(...primaryColor);
-  doc.setLineWidth(0.3);
+  // Grand total separator
+  doc.setDrawColor(...brandTeal);
+  doc.setLineWidth(0.4);
   doc.line(totalsX, yPos + 45, totalsX + totalsWidth, yPos + 45);
 
-  doc.setTextColor(...primaryColor);
+  doc.setTextColor(...brandBlue);
   drawTotalLine("GRAND TOTAL:", `${data.currencySymbol}${data.grandTotal.toFixed(2)}`, yPos + 55, true);
 
   yPos += 75;
@@ -250,17 +324,17 @@ export function generateQuotationPDF(data: QuotationData): void {
   // === FOOTER ===
   const footerY = doc.internal.pageSize.getHeight() - 20;
 
-  doc.setDrawColor(226, 232, 240);
+  doc.setDrawColor(...brandTeal);
   doc.setLineWidth(0.3);
   doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
 
   doc.setTextColor(...lightGray);
   doc.setFontSize(7);
-  doc.text("UpaHealth Supplies | AI-Enabled Healthcare Sourcing Intelligence", margin, footerY);
+  doc.text("UpaHealth Supplies | Your Path to Wellness", margin, footerY);
   doc.text(COMPANY_INFO.email, margin, footerY + 5);
 
-  doc.setTextColor(...primaryColor);
-  doc.text("www.upahealthsupplies.com", pageWidth - margin, footerY, { align: "right" });
+  doc.setTextColor(...brandTeal);
+  doc.text(COMPANY_INFO.website, pageWidth - margin, footerY, { align: "right" });
   doc.text("CONFIDENTIAL", pageWidth - margin, footerY + 5, { align: "right" });
 
   // Save the PDF

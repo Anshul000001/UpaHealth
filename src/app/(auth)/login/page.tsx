@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Logo } from "@/components/brand/logo";
 
 function LoginForm() {
   const router = useRouter();
@@ -133,12 +134,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-950 grid-pattern flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">UH</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">UpaHealth</h1>
-          <p className="text-slate-400 text-sm mt-1">AI Procurement Intelligence Platform</p>
+        <div className="flex flex-col items-center text-center mb-8">
+          <Logo variant="stacked" size={64} showTagline />
+          <p className="text-slate-400 text-xs mt-3">AI Procurement Intelligence Platform</p>
         </div>
 
         <Suspense fallback={

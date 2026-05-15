@@ -16,6 +16,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo, LogoMark } from "@/components/brand/logo";
 
 export default function LandingPage() {
   return (
@@ -24,12 +25,15 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full z-50 glass border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">UH</span>
-            </div>
-            <div>
-              <span className="text-white font-bold">UpaHealth</span>
-              <span className="text-slate-500 text-xs ml-2">Procurement Intelligence</span>
+            <LogoMark size={36} />
+            <div className="leading-tight">
+              <span className="block text-white font-bold tracking-tight">
+                <span className="text-blue-300">Upa</span>
+                <span className="text-teal-300">Health</span>
+              </span>
+              <span className="text-[10px] text-teal-400/70 uppercase tracking-[0.2em]">
+                Your Path to Wellness
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -242,13 +246,11 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8 px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">UH</span>
-            </div>
-            <span className="text-sm text-slate-400">UpaHealth Supplies © 2025</span>
+          <Logo variant="full" size={28} showTagline={false} />
+          <div className="text-right">
+            <p className="text-sm text-slate-400">UpaHealth Supplies © 2025</p>
+            <p className="text-xs text-slate-600">AI-Enabled Healthcare Sourcing Intelligence</p>
           </div>
-          <p className="text-xs text-slate-600">AI-Enabled Healthcare Sourcing Intelligence</p>
         </div>
       </footer>
     </div>

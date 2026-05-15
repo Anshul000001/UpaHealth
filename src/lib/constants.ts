@@ -1,6 +1,6 @@
 export const COMPANY_INFO = {
   name: "UpaHealth Supplies",
-  tagline: "AI-Enabled Healthcare Sourcing Intelligence",
+  tagline: "Your Path to Wellness",
   email: "adminupahealthsupplies@gmail.com",
   website: "www.upahealthsupplies.com",
   address: "India",

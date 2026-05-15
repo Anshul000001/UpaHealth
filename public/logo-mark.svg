@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="UpaHealth">
+  <defs>
+    <linearGradient id="upa-cross" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="0.5" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#1e40af"/>
+    </linearGradient>
+    <linearGradient id="upa-leaf" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="0.5" stop-color="#06b6d4"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+  </defs>
+  <path
+    d="M43 5 L57 5 A8 8 0 0 1 65 13 L65 35 L87 35 A8 8 0 0 1 95 43 L95 57 A8 8 0 0 1 87 65 L65 65 L65 87 A8 8 0 0 1 57 95 L43 95 A8 8 0 0 1 35 87 L35 65 L13 65 A8 8 0 0 1 5 57 L5 43 A8 8 0 0 1 13 35 L35 35 L35 13 A8 8 0 0 1 43 5 Z"
+    fill="none"
+    stroke="url(#upa-cross)"
+    stroke-width="6"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M50 22 C 70 36 70 64 50 80 C 30 64 30 36 50 22 Z"
+    fill="url(#upa-leaf)"
+  />
+  <path
+    d="M50 28 C 50 40 50 60 50 74"
+    stroke="rgba(255,255,255,0.55)"
+    stroke-width="2"
+    stroke-linecap="round"
+    fill="none"
+  />
+</svg>

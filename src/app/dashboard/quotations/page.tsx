@@ -100,8 +100,8 @@ export default function QuotationsPage() {
 
   const currencySymbol = CURRENCIES.find((c) => c.code === currency)?.symbol || "₹";
 
-  const handleDownloadPDF = () => {
-    generateQuotationPDF({
+  const handleDownloadPDF = async () => {
+    await generateQuotationPDF({
       quotationId,
       buyerName: buyerName || "Unnamed Buyer",
       buyerEmail,

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Logo, LogoMark } from "@/components/brand/logo";
 import {
   LayoutDashboard,
   FileText,
@@ -46,20 +47,23 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-white/10">
         {!collapsed && (
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">UH</span>
-            </div>
-            <div>
-              <span className="text-white font-bold text-sm">UpaHealth</span>
-              <p className="text-[10px] text-slate-500 leading-none">AI Procurement Intelligence</p>
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <LogoMark size={32} />
+            <div className="leading-tight">
+              <span className="block text-white font-bold text-sm tracking-tight">
+                <span className="text-blue-300">Upa</span>
+                <span className="text-teal-300">Health</span>
+              </span>
+              <span className="text-[9px] text-teal-400/70 uppercase tracking-[0.18em]">
+                Your Path to Wellness
+              </span>
             </div>
           </Link>
         )}
         {collapsed && (
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center mx-auto">
-            <span className="text-white font-bold text-sm">UH</span>
-          </div>
+          <Link href="/dashboard" className="mx-auto">
+            <Logo variant="mark" size={32} />
+          </Link>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
