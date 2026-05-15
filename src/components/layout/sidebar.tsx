@@ -17,6 +17,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -27,7 +28,9 @@ const navItems = [
   { label: "Products", href: "/dashboard/products", icon: Package },
   { label: "Suppliers", href: "/dashboard/suppliers", icon: Factory },
   { label: "CRM", href: "/dashboard/crm", icon: Users },
+  { label: "Communications", href: "/dashboard/communications", icon: Mail },
   { label: "Export Intel", href: "/dashboard/export", icon: Globe },
+  { label: "AI Agents", href: "/dashboard/agents", icon: Bot },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { label: "AI Assistant", href: "/dashboard/ai", icon: Bot },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
