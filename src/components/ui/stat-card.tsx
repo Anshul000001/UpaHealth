@@ -14,6 +14,8 @@ import {
   DollarSign,
   Ship,
   FileCheck,
+  Zap,
+  Bookmark,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,6 +36,8 @@ const ICON_REGISTRY = {
   DollarSign,
   Ship,
   FileCheck,
+  Zap,
+  Bookmark,
 } as const satisfies Record<string, LucideIcon>;
 
 export type StatIconName = keyof typeof ICON_REGISTRY;
