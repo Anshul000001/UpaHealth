@@ -1,17 +1,16 @@
 import {
   Package,
-  Plus,
   Globe,
   Shield,
   TrendingUp,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getProducts } from "@/lib/services/product-service";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { PRODUCT_CATEGORIES } from "@/lib/constants";
+import { AddProductButton } from "@/components/dashboard/ProductsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +30,7 @@ export default async function ProductsPage() {
             {total} products across {PRODUCT_CATEGORIES.length} categories
           </p>
         </div>
-        <Button size="sm">
-          <Plus className="w-3.5 h-3.5" /> Add Product
-        </Button>
+        <AddProductButton />
       </div>
 
       {/* Products Grid */}
