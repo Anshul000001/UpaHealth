@@ -6,7 +6,6 @@ import {
   TrendingUp,
   Clock,
   AlertTriangle,
-  Plus,
   Search,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { getSuppliers } from "@/lib/services/supplier-service";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { AddSupplierButton } from "@/components/dashboard/SupplierClient";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +34,7 @@ export default async function SuppliersPage() {
             {total} AI-scored supplier profiles with reliability and quality metrics
           </p>
         </div>
-        <Button size="sm">
-          <Plus className="w-3.5 h-3.5" /> Add Supplier
-        </Button>
+        <AddSupplierButton />
       </div>
 
       {/* Search */}
