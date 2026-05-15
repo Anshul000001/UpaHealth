@@ -45,9 +45,11 @@ async function fetchGeMTenders(): Promise<RawTender[]> {
       const html = await res.text();
 
       // Parse bid cards from GeM HTML
-      const bidMatches = html.matchAll(
-        /bid_no['":\s]+([A-Z0-9\-\/]+).*?bid_title['":\s]+"([^"]+)".*?ministry['":\s]+"([^"]+)"/gs
+      const bidRegex = new RegExp(
+        "bid_no['\": ]+([A-Z0-9\\-\\/]+).*?bid_title['\": ]+\"([^\"]+)\".*?ministry['\": ]+\"([^\"]+)\"",
+        "gs"
       );
+      const bidMatches = html.matchAll(bidRegex);
 
       for (const m of bidMatches) {
         results.push({

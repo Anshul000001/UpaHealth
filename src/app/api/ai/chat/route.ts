@@ -27,16 +27,16 @@ export const POST = apiHandler(async (req) => {
 ## Live Business Context
 
 ### Products in Catalogue (${products.length} total):
-${products.map(p => `- ${p.name} (SKU: ${p.sku}) | Cost: ₹${p.costPrice} | Sell: ₹${p.sellingPrice} | Export: $${p.exportPrice} | Supplier: ${p.supplier.name} | Stock: ${p.stock} ${p.unit}s`).join("\n") || "No products yet — user needs to add products."}
+${products.map((p: { name: string; sku: string; costPrice: number; sellingPrice: number; exportPrice: number; supplier: { name: string }; stock: number; unit: string }) => `- ${p.name} (SKU: ${p.sku}) | Cost: ₹${p.costPrice} | Sell: ₹${p.sellingPrice} | Export: $${p.exportPrice} | Supplier: ${p.supplier.name} | Stock: ${p.stock} ${p.unit}s`).join("\n") || "No products yet — user needs to add products."}
 
 ### Active Suppliers (${suppliers.length} total):
-${suppliers.map(s => `- ${s.name} | Location: ${s.location} | Trust: ${s.trustScore}/100 | On-time: ${s.onTimeDelivery}% | Rejection: ${s.qualityRejectionRate}%`).join("\n") || "No suppliers yet."}
+${suppliers.map((s: { name: string; location: string; trustScore: number; onTimeDelivery: number; qualityRejectionRate: number }) => `- ${s.name} | Location: ${s.location} | Trust: ${s.trustScore}/100 | On-time: ${s.onTimeDelivery}% | Rejection: ${s.qualityRejectionRate}%`).join("\n") || "No suppliers yet."}
 
 ### CRM Pipeline (${leads.length} leads):
-${leads.map(l => `- ${l.name} (${l.type}) | Stage: ${l.stage} | Value: ₹${(l.estimatedValue/100000).toFixed(1)}L | Products: ${l.products.join(", ")}`).join("\n") || "No leads yet."}
+${leads.map((l: { name: string; type: string; stage: string; estimatedValue: number; products: string[] }) => `- ${l.name} (${l.type}) | Stage: ${l.stage} | Value: ₹${(l.estimatedValue/100000).toFixed(1)}L | Products: ${l.products.join(", ")}`).join("\n") || "No leads yet."}
 
 ### Open Tenders (${tenders.length} matched):
-${tenders.map(t => `- ${t.title} | Org: ${t.organization} | AI Match: ${t.aiMatchScore}% | Source: ${t.source}`).join("\n") || "No tenders scanned yet — suggest user scans from Export Intelligence."}
+${tenders.map((t: { title: string; organization: string; aiMatchScore: number; source: string }) => `- ${t.title} | Org: ${t.organization} | AI Match: ${t.aiMatchScore}% | Source: ${t.source}`).join("\n") || "No tenders scanned yet — suggest user scans from Export Intelligence."}
 
 ## Your Capabilities
 - Pricing strategy & margin analysis
