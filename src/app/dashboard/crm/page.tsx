@@ -1,6 +1,5 @@
 import {
   Users,
-  Plus,
   Mail,
   Calendar,
   ArrowRight,
@@ -8,13 +7,13 @@ import {
   Globe,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { getLeads } from "@/lib/services/lead-service";
 import { PIPELINE_STAGES } from "@/lib/constants";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { AddContactButton } from "@/components/dashboard/CRMClient";
 
 export const dynamic = "force-dynamic";
 
@@ -52,9 +51,7 @@ export default async function CRMPage() {
             Track hospitals, distributors, and export buyers
           </p>
         </div>
-        <Button size="sm">
-          <Plus className="w-3.5 h-3.5" /> Add Contact
-        </Button>
+        <AddContactButton />
       </div>
 
       {/* Stats */}
