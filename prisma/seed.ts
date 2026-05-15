@@ -1,8 +1,16 @@
-﻿import { PrismaClient, UserRole, LeadType } from "@prisma/client";
+﻿import { PrismaClient, UserRole } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
+import "dotenv/config";
 // Seed v2 — full product catalog
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is not set.");
+}
+
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log("🌱 Seeding UpaHealth database...");
@@ -184,3 +192,18 @@ async function main() {
     }),
   ]);
   console.log(`✅ ${suppliers.length} suppliers created`);
+
+  console.log("\n🎉 Database seeded successfully!");
+  console.log("   Admin login: admin@upahealthsupplies.com / admin123");
+  console.log("   Sales login: sales@upahealthsupplies.com / sales123");
+}
+
+main()
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error("❌ Seed error:", e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
