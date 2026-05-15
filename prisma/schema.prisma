@@ -463,3 +463,29 @@ model CEODashboardMetric {
   @@unique([date])
   @@map("ceo_dashboard_metrics")
 }
+
+// ============================================
+// EMAIL COMMUNICATIONS LOG
+// ============================================
+
+model EmailLog {
+  id          String   @id @default(cuid())
+  to          String   // Recipient email
+  cc          String?  // CC recipients
+  bcc         String?  // BCC recipients
+  subject     String
+  body        String   @db.Text // HTML body
+  template    String?  // "quotation", "follow-up", "custom"
+  status      String   @default("sent") // sent, failed, bounced
+  messageId   String?  // SMTP message ID
+  relatedType String?  // "quotation", "lead", "supplier"
+  relatedId   String?  // ID of related entity
+  sentById    String?  // User who sent it
+  errorMsg    String?  // Error message if failed
+  sentAt      DateTime @default(now())
+
+  @@index([to])
+  @@index([relatedType, relatedId])
+  @@index([sentAt])
+  @@map("email_logs")
+}

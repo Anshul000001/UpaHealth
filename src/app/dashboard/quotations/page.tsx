@@ -12,6 +12,9 @@ import {
   IndianRupee,
   Package,
   CheckCircle2,
+  Loader2,
+  Mail,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +56,9 @@ export default function QuotationsPage() {
   const [validityDays, setValidityDays] = useState(15);
   const [pdfGenerated, setPdfGenerated] = useState(false);
   const [products, setProducts] = useState<ProductOption[]>([]);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
+  const [emailMessage, setEmailMessage] = useState("");
 
   // Fetch products from API on mount
   useEffect(() => {
@@ -149,6 +155,59 @@ export default function QuotationsPage() {
     setTimeout(() => setPdfGenerated(false), 3000);
   };
 
+  const handleSendEmail = async () => {
+    if (!buyerEmail) {
+      setEmailStatus("error");
+      setEmailMessage("Please enter buyer email address");
+      setTimeout(() => setEmailStatus("idle"), 4000);
+      return;
+    }
+    if (items.length === 0) {
+      setEmailStatus("error");
+      setEmailMessage("Please add at least one product to the quotation");
+      setTimeout(() => setEmailStatus("idle"), 4000);
+      return;
+    }
+
+    setEmailSending(true);
+    setEmailStatus("idle");
+
+    try {
+      const res = await fetch("/api/communications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: buyerEmail,
+          subject: `Quotation ${quotationId} from UpaHealth Supplies`,
+          template: "quotation",
+          templateData: {
+            buyerName: buyerName || "Valued Customer",
+            quotationId,
+            grandTotal,
+            currency,
+            validityDays,
+          },
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setEmailStatus("success");
+        setEmailMessage(`Quotation sent to ${buyerEmail}`);
+      } else {
+        setEmailStatus("error");
+        setEmailMessage(data.error?.message || data.message || "Failed to send email");
+      }
+    } catch (err) {
+      setEmailStatus("error");
+      setEmailMessage((err as Error).message);
+    } finally {
+      setEmailSending(false);
+      setTimeout(() => setEmailStatus("idle"), 5000);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* PDF Success Toast */}
@@ -156,6 +215,20 @@ export default function QuotationsPage() {
         <div className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-sm font-medium animate-fade-in">
           <CheckCircle2 className="w-4 h-4" />
           PDF downloaded successfully!
+        </div>
+      )}
+
+      {/* Email Status Toast */}
+      {emailStatus === "success" && (
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-sm font-medium animate-fade-in">
+          <Mail className="w-4 h-4" />
+          {emailMessage}
+        </div>
+      )}
+      {emailStatus === "error" && (
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-medium animate-fade-in">
+          <AlertCircle className="w-4 h-4" />
+          {emailMessage}
         </div>
       )}
 
@@ -174,8 +247,9 @@ export default function QuotationsPage() {
           <Button variant="secondary" size="sm" onClick={handleDownloadPDF}>
             <Download className="w-3.5 h-3.5" /> Export PDF
           </Button>
-          <Button size="sm">
-            <Send className="w-3.5 h-3.5" /> Send Quotation
+          <Button size="sm" onClick={handleSendEmail} disabled={emailSending}>
+            {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            {emailSending ? "Sending..." : "Send Quotation"}
           </Button>
         </div>
       </div>
@@ -463,8 +537,9 @@ export default function QuotationsPage() {
                 >
                   <Download className="w-3.5 h-3.5" /> Download as PDF
                 </Button>
-                <Button variant="secondary" className="w-full justify-start" size="sm">
-                  <Send className="w-3.5 h-3.5" /> Email to Buyer
+                <Button variant="secondary" className="w-full justify-start" size="sm" onClick={handleSendEmail} disabled={emailSending}>
+                  {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  {emailSending ? "Sending..." : "Email to Buyer"}
                 </Button>
                 <Button variant="secondary" className="w-full justify-start" size="sm">
                   <FileText className="w-3.5 h-3.5" /> Save as Draft
