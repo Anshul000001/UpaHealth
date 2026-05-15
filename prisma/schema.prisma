@@ -210,3 +210,30 @@ model LeadStageTransition {
 
   @@map("lead_stage_transitions")
 }
+
+// ============================================
+// TENDERS
+// ============================================
+
+model Tender {
+  id           String   @id @default(cuid())
+  externalId   String   @unique // ID from source
+  source       String   // "GeM", "CPPP", "eProcure", "State"
+  title        String
+  organization String
+  category     String?
+  value        Float?   // Estimated value in INR
+  currency     String   @default("INR")
+  deadline     DateTime?
+  publishedAt  DateTime?
+  status       String   @default("open") // open, closed, awarded
+  url          String?
+  aiMatchScore Int      @default(0) // 0-100 AI match score
+  aiSummary    String?  // AI-generated summary
+  matchedProducts String[] // Product categories that match
+  saved        Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("tenders")
+}
