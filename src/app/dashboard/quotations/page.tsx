@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Trash2,
@@ -17,10 +17,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { mockProducts } from "@/lib/mock-data";
 import { generateQuotationId } from "@/lib/utils";
 import { CURRENCIES, GST_RATES } from "@/lib/constants";
 import { generateQuotationPDF } from "@/lib/generate-pdf";
+
+interface ProductOption {
+  id: string;
+  name: string;
+  sellingPrice: number;
+  exportPrice: number;
+  costPrice: number;
+  sku: string;
+}
 
 interface QuotationItem {
   id: string;
@@ -44,6 +52,26 @@ export default function QuotationsPage() {
   const [freight, setFreight] = useState(0);
   const [validityDays, setValidityDays] = useState(15);
   const [pdfGenerated, setPdfGenerated] = useState(false);
+  const [products, setProducts] = useState<ProductOption[]>([]);
+
+  // Fetch products from API on mount
+  useEffect(() => {
+    fetch("/api/products?pageSize=100")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setProducts(res.data.map((p: ProductOption & Record<string, unknown>) => ({
+            id: p.id,
+            name: p.name,
+            sellingPrice: p.sellingPrice,
+            exportPrice: p.exportPrice,
+            costPrice: p.costPrice,
+            sku: p.sku,
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const addItem = () => {
     const newItem: QuotationItem = {
@@ -65,7 +93,7 @@ export default function QuotationsPage() {
         if (item.id === id) {
           const updated = { ...item, [field]: value };
           if (field === "productId") {
-            const product = mockProducts.find((p) => p.id === value);
+            const product = products.find((p) => p.id === value);
             if (product) {
               updated.productName = product.name;
               updated.unitPrice = currency === "INR" ? product.sellingPrice : product.exportPrice;
@@ -258,7 +286,7 @@ export default function QuotationsPage() {
                           onChange={(e) => updateItem(item.id, "productId", e.target.value)}
                         >
                           <option value="">Select product...</option>
-                          {mockProducts.map((p) => (
+                          {products.map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.name}
                             </option>
@@ -394,7 +422,7 @@ export default function QuotationsPage() {
             <CardContent>
               <div className="space-y-3">
                 {items.filter(i => i.productId).map((item) => {
-                  const product = mockProducts.find((p) => p.id === item.productId);
+                  const product = products.find((p) => p.id === item.productId);
                   if (!product) return null;
                   const margin = ((item.unitPrice - product.costPrice) / item.unitPrice) * 100;
                   return (
