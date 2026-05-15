@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -48,6 +49,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="antialiased bg-slate-950 text-white font-sans">
         <AuthSessionProvider>{children}</AuthSessionProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
