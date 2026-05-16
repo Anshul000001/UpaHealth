@@ -175,39 +175,91 @@ export default function CommunicationsPage() {
 
       {/* Quick Templates */}
       <div className="rounded-xl bg-slate-900/50 border border-white/10 p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Quick Templates</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <h2 className="text-lg font-semibold text-white mb-2">Quick Templates</h2>
+        <p className="text-xs text-slate-500 mb-4">Click any template to auto-fill your message — edit before sending</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <button
             onClick={() => {
-              setSubject("Quotation from UpaHealth Supplies");
-              setMessage("Dear Customer,\n\nThank you for your interest in our products. Please find the attached quotation for your review.\n\nIf you have any questions, please don't hesitate to reach out.\n\nBest regards,\nUpaHealth Supplies Team");
+              setSubject("Your Quotation from UpaHealth Supplies 📋");
+              setMessage("Dear Customer,\n\nThank you for choosing UpaHealth Supplies — your trusted partner in quality healthcare products.\n\nPlease find the attached quotation prepared exclusively for you. We've ensured competitive pricing with the best quality products available.\n\n✅ Competitive pricing\n✅ WHO-GMP & ISO certified products\n✅ Fast delivery across India & exports\n\nThis quotation is valid for 15 days. Feel free to reach out if you need any modifications.\n\nLooking forward to serving you!\n\nWarm regards,\nUpaHealth Supplies Team\n📞 Contact us anytime");
             }}
-            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all"
+            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all group"
           >
-            <p className="text-sm font-medium text-white">Quotation Email</p>
-            <p className="text-xs text-slate-400 mt-1">Send quotation to a buyer</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">📋</span>
+              <p className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">Quotation Email</p>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Professional quotation with trust signals</p>
           </button>
 
           <button
             onClick={() => {
-              setSubject("Following up — UpaHealth Supplies");
-              setMessage("Dear Customer,\n\nI wanted to follow up regarding our previous conversation. We'd love to assist you with your medical supply requirements.\n\nPlease let us know if you'd like to discuss further or need an updated quotation.\n\nBest regards,\nUpaHealth Supplies Team");
+              setSubject("Quick Follow-up — Still interested? 🤝");
+              setMessage("Hi there,\n\nJust checking in! We spoke recently about your medical supply requirements and I wanted to make sure you have everything you need.\n\nHere's what we can help with:\n🏥 Surgical consumables & disposables\n💊 Pharmaceutical products\n🔬 Diagnostic equipment & supplies\n🌍 Export-ready with all certifications\n\nWould you like me to:\n• Send an updated quotation?\n• Schedule a quick call to discuss?\n• Share our latest product catalog?\n\nWe're here to make procurement easy for you.\n\nBest regards,\nUpaHealth Supplies Team");
             }}
-            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all"
+            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all group"
           >
-            <p className="text-sm font-medium text-white">Follow-up</p>
-            <p className="text-xs text-slate-400 mt-1">Follow up with a lead</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">🤝</span>
+              <p className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">Friendly Follow-up</p>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Warm check-in with action options</p>
           </button>
 
           <button
             onClick={() => {
               setSubject("Product Inquiry — UpaHealth Supplies");
-              setMessage("Dear Supplier,\n\nWe are interested in your products and would like to request pricing and availability information.\n\nPlease share your latest catalog and MOQ details.\n\nBest regards,\nUpaHealth Supplies Team");
+              setMessage("Dear Supplier,\n\nGreetings from UpaHealth Supplies!\n\nWe are a growing healthcare procurement company based in India, serving hospitals, distributors, and government institutions.\n\nWe are interested in your product range and would like to explore a business partnership.\n\nCould you please share:\n📦 Your latest product catalog\n💰 Wholesale/distributor pricing\n📋 MOQ and lead time details\n📜 Available certifications (ISO, CE, WHO-GMP)\n\nWe look forward to building a long-term relationship.\n\nBest regards,\nUpaHealth Supplies Team\nwww.upahealthsupplies.com");
             }}
-            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all"
+            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all group"
           >
-            <p className="text-sm font-medium text-white">Supplier Inquiry</p>
-            <p className="text-xs text-slate-400 mt-1">Reach out to a supplier</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">🏭</span>
+              <p className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">Supplier Inquiry</p>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Professional supplier outreach</p>
+          </button>
+
+          <button
+            onClick={() => {
+              setSubject("Welcome to UpaHealth Supplies! 🎉");
+              setMessage("Dear Partner,\n\nWelcome aboard! We're thrilled to have you as part of the UpaHealth family.\n\nHere's what you can expect from us:\n\n🌟 Premium Quality — All products are WHO-GMP, ISO 13485 & CE certified\n⚡ Fast Turnaround — Orders processed within 24-48 hours\n💰 Best Pricing — Direct from manufacturers, no middlemen\n🌍 Global Reach — We export to 15+ countries\n📞 Dedicated Support — Your personal account manager is just a call away\n\nTo get started, simply reply to this email with your requirements or browse our catalog at www.upahealthsupplies.com\n\nWe're excited to serve you!\n\nCheers,\nUpaHealth Supplies Team");
+            }}
+            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all group"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">🎉</span>
+              <p className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">Welcome New Client</p>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Onboard a new buyer or distributor</p>
+          </button>
+
+          <button
+            onClick={() => {
+              setSubject("Exclusive Offer — Limited Time Only! 🔥");
+              setMessage("Dear Valued Customer,\n\nWe have an exclusive offer just for you!\n\n🔥 SPECIAL DEAL 🔥\n\n• Up to 15% OFF on bulk orders (50+ units)\n• FREE shipping on orders above ₹50,000\n• Extra 5% discount for repeat customers\n• Priority delivery within 3-5 business days\n\n📦 Top Categories on Offer:\n- Surgical gloves & masks\n- Syringes & IV sets\n- Diagnostic kits\n- Hospital furniture & equipment\n\n⏰ Offer valid till end of this month — don't miss out!\n\nReply to this email or call us to place your order today.\n\nBest regards,\nUpaHealth Supplies Team\nYour Path to Wellness 💚");
+            }}
+            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all group"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">🔥</span>
+              <p className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">Special Offer</p>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Promotional deal to drive sales</p>
+          </button>
+
+          <button
+            onClick={() => {
+              setSubject("Thank You for Your Order! 🙏");
+              setMessage("Dear Customer,\n\nThank you for your recent order with UpaHealth Supplies! 🎊\n\nYour order has been confirmed and is being processed. Here's what happens next:\n\n1️⃣ Order Confirmation — Done ✅\n2️⃣ Quality Check — In progress\n3️⃣ Packaging & Dispatch — Within 24-48 hours\n4️⃣ Delivery — Estimated 3-7 business days\n\nYou'll receive tracking details once your order is shipped.\n\n💡 Pro Tip: Save 10% on your next order by referring a hospital or clinic to us!\n\nIf you have any questions about your order, simply reply to this email.\n\nThank you for trusting UpaHealth Supplies!\n\nWith gratitude,\nUpaHealth Supplies Team\nwww.upahealthsupplies.com");
+            }}
+            className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all group"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">🙏</span>
+              <p className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">Order Confirmation</p>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Thank customer after order placement</p>
           </button>
         </div>
       </div>
