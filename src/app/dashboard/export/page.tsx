@@ -2,26 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Globe,
-  ArrowUpRight,
-  Shield,
-  AlertCircle,
-  Loader2,
-  RefreshCw,
-  Bookmark,
-  BookmarkCheck,
-  ExternalLink,
-  Zap,
-  Building2,
-  Calendar,
-  IndianRupee,
-  CheckCircle2,
-  Radio,
+  Globe, ArrowUpRight, Shield, Loader2, RefreshCw,
+  Bookmark, BookmarkCheck, ExternalLink, Zap, Building2,
+  Calendar, IndianRupee, CheckCircle2, Radio, Sparkles, Brain,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
+import { Select } from "@/components/ui/input";
 import { EXPORT_MARKETS } from "@/lib/constants";
 
 interface Tender {
@@ -70,6 +59,11 @@ export default function ExportPage() {
   const [filter, setFilter] = useState<"all" | "saved" | "GeM" | "CPPP" | "MoHFW">("all");
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  // NVIDIA AI Export Intelligence
+  const [aiMarket, setAiMarket] = useState("East Africa");
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiInsight, setAiInsight] = useState<Record<string, unknown> | null>(null);
 
   const loadTenders = useCallback(async () => {
     setLoading(true);
@@ -118,6 +112,22 @@ export default function ExportPage() {
       );
     } finally {
       setSavingId(null);
+    }
+  }
+
+  async function getAIInsight() {
+    setAiLoading(true);
+    setAiInsight(null);
+    try {
+      const res = await fetch("/api/ai/export-insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ market: aiMarket, query: aiQuery }),
+      });
+      const data = await res.json();
+      if (data.success) setAiInsight(data.data);
+    } finally {
+      setAiLoading(false);
     }
   }
 
@@ -383,6 +393,63 @@ export default function ExportPage() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* NVIDIA AI Export Intelligence */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Brain className="w-4 h-4 text-cyan-400" />
+                NVIDIA AI Export Intel
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 mb-1.5 block">Target Market</label>
+                <Select value={aiMarket} onChange={(e) => setAiMarket(e.target.value)}>
+                  {["East Africa", "GCC / UAE", "Saudi Arabia", "Kenya", "Tanzania", "Bangladesh", "Sri Lanka"].map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1.5 block">Query (optional)</label>
+                <input
+                  value={aiQuery}
+                  onChange={(e) => setAiQuery(e.target.value)}
+                  placeholder="e.g. IV sets, surgical kits..."
+                  className="w-full rounded-lg border border-slate-600/50 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                />
+              </div>
+              <Button size="sm" onClick={getAIInsight} disabled={aiLoading} className="w-full">
+                {aiLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyzing…</> : <><Sparkles className="w-3.5 h-3.5" /> Get AI Insights</>}
+              </Button>
+
+              {aiInsight && (
+                <div className="space-y-2 pt-2 border-t border-slate-700/50">
+                  {(aiInsight.summary as string) && (
+                    <p className="text-xs text-slate-300 italic">{aiInsight.summary as string}</p>
+                  )}
+                  {Array.isArray(aiInsight.targetOrgs) && aiInsight.targetOrgs.length > 0 && (
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Top Targets</p>
+                      {(aiInsight.targetOrgs as Array<{name: string; type: string; why: string}>).map((org, i) => (
+                        <div key={i} className="p-2 rounded bg-slate-800/50 mb-1">
+                          <p className="text-xs text-white font-medium">{org.name}</p>
+                          <p className="text-[10px] text-slate-400">{org.why}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {(aiInsight.pricingStrategy as string) && (
+                    <div className="p-2 rounded bg-cyan-500/10 border border-cyan-500/20">
+                      <p className="text-[10px] text-cyan-400 uppercase tracking-wider mb-0.5">Pricing Strategy</p>
+                      <p className="text-xs text-slate-300">{aiInsight.pricingStrategy as string}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

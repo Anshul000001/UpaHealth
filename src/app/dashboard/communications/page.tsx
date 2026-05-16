@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Mail, Send, CheckCircle, AlertCircle, Loader2,
   FileText, Clock, RefreshCw, Eye, Inbox, Trash2,
-  User, AtSign, ChevronDown, ChevronUp,
+  User, AtSign, ChevronDown, ChevronUp, Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface EmailDraft {
   id: string;
@@ -35,6 +36,10 @@ export default function CommunicationsPage() {
   const [editingEmail, setEditingEmail] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"compose" | "drafts">("compose");
   const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
+  // NVIDIA AI compose
+  const [aiContext, setAiContext] = useState("");
+  const [aiType, setAiType] = useState("outreach");
+  const [aiLoading, setAiLoading] = useState(false);
 
   const loadDrafts = useCallback(async () => {
     setLoadingDrafts(true);
@@ -109,6 +114,24 @@ export default function CommunicationsPage() {
     setSendResult("");
   }
 
+  async function aiCompose() {
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/ai/compose-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, context: aiContext, type: aiType }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubject(data.data.subject);
+        setMessage(data.data.body);
+      }
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -160,6 +183,39 @@ export default function CommunicationsPage() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Compose Email</CardTitle></CardHeader>
             <CardContent>
+              {/* NVIDIA AI Compose Panel */}
+              <div className="mb-5 p-4 rounded-xl border border-cyan-500/20 bg-gradient-to-r from-cyan-500/5 to-blue-500/5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <p className="text-sm font-medium text-cyan-300">NVIDIA AI Email Writer</p>
+                  <Badge variant="success" className="text-[10px] ml-auto">Llama 3.1</Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                  <div className="sm:col-span-2">
+                    <Input
+                      value={aiContext}
+                      onChange={(e) => setAiContext(e.target.value)}
+                      placeholder="Context: e.g. Hospital in Kenya interested in IV sets..."
+                    />
+                  </div>
+                  <div>
+                    <select
+                      value={aiType}
+                      onChange={(e) => setAiType(e.target.value)}
+                      className="w-full rounded-lg border border-slate-600/50 bg-slate-800/50 px-4 py-2.5 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+                    >
+                      <option value="outreach">Cold Outreach</option>
+                      <option value="followup">Follow-up</option>
+                      <option value="quotation">Quotation</option>
+                      <option value="supplier">Supplier Inquiry</option>
+                      <option value="tender">Tender Response</option>
+                    </select>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={aiCompose} disabled={aiLoading}>
+                  {aiLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Writing…</> : <><Sparkles className="w-3.5 h-3.5" /> Generate with NVIDIA AI</>}
+                </Button>
+              </div>
               <form onSubmit={handleSend} className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5">To (Recipient Email)</label>
