@@ -489,3 +489,40 @@ model EmailLog {
   @@index([sentAt])
   @@map("email_logs")
 }
+
+// ============================================
+// LEAD GENERATION SEARCHES
+// ============================================
+
+model LeadSearch {
+  id            String   @id @default(cuid())
+  market        String
+  segment       String
+  productFocus  String
+  count         Int
+  generatedCount Int     @default(0)
+  savedCount    Int      @default(0)
+  status        String   @default("completed") // completed, failed
+  aiOutput      Json?    // Full AI response
+  createdAt     DateTime @default(now())
+
+  @@map("lead_searches")
+}
+
+// ============================================
+// AI OUTREACH EMAILS
+// ============================================
+
+model OutreachEmail {
+  id          String   @id @default(cuid())
+  leadId      String
+  subject     String
+  body        String   @db.Text
+  status      String   @default("draft") // draft, sent, failed
+  sentAt      DateTime?
+  openedAt    DateTime?
+  repliedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("outreach_emails")
+}

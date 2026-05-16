@@ -145,6 +145,37 @@ Respond ONLY with a JSON array:
     // non-critical
   }
 
+  // Save search history
+  await prisma.leadSearch.create({
+    data: {
+      market,
+      segment,
+      productFocus,
+      count,
+      generatedCount: leads.length,
+      savedCount: saved.length,
+      status: "completed",
+      aiOutput: { leads: leads },
+    },
+  });
+
+  // Log activity
+  try {
+    const agent = await prisma.aIAgent.findUnique({ where: { name: "Sales" } });
+    if (agent) {
+      await prisma.aIActivity.create({
+        data: {
+          agentId: agent.id,
+          action: "generated_leads",
+          details: { market, segment, productFocus, count: saved.length },
+          success: true,
+        },
+      });
+    }
+  } catch {
+    // non-critical
+  }
+
   return NextResponse.json({
     success: true,
     data: {
