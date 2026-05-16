@@ -69,6 +69,8 @@ SUBJECT: [subject line]
   const email = await prisma.outreachEmail.create({
     data: {
       leadId: lead.id,
+      leadName: lead.name,
+      toEmail: lead.email ?? "",
       subject,
       body,
       status: "draft",
@@ -81,6 +83,7 @@ SUBJECT: [subject line]
       id: email.id,
       leadId: lead.id,
       leadName: lead.name,
+      toEmail: lead.email ?? "",
       subject,
       body,
       status: "draft",

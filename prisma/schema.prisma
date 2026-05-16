@@ -516,12 +516,15 @@ model LeadSearch {
 model OutreachEmail {
   id          String   @id @default(cuid())
   leadId      String
+  leadName    String   @default("")   // Cached lead name
+  toEmail     String   @default("")   // Recipient email address
   subject     String
   body        String   @db.Text
   status      String   @default("draft") // draft, sent, failed
   sentAt      DateTime?
   openedAt    DateTime?
   repliedAt   DateTime?
+  deletedAt   DateTime?              // Soft delete
   createdAt   DateTime @default(now())
 
   @@map("outreach_emails")

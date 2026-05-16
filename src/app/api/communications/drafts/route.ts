@@ -12,6 +12,7 @@ export const GET = apiHandler(async () => {
   await requireAuth("read");
 
   const drafts = await prisma.outreachEmail.findMany({
+    where: { deletedAt: null },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
