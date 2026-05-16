@@ -28,6 +28,7 @@ const navItems = [
   { label: "Products", href: "/dashboard/products", icon: Package },
   { label: "Suppliers", href: "/dashboard/suppliers", icon: Factory },
   { label: "CRM", href: "/dashboard/crm", icon: Users },
+  { label: "Lead Gen AI", href: "/dashboard/lead-gen", icon: Users },
   { label: "Communications", href: "/dashboard/communications", icon: Mail },
   { label: "Export Intel", href: "/dashboard/export", icon: Globe },
   { label: "AI Agents", href: "/dashboard/agents", icon: Bot },
