@@ -529,3 +529,16 @@ model OutreachEmail {
 
   @@map("outreach_emails")
 }
+
+// ============================================
+// APP SETTINGS (persisted to Supabase)
+// ============================================
+
+model AppSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
