@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   User, Building2, Bell, Shield, Key, Mail, Globe,
-  CheckCircle2, Save, RefreshCw, Sparkles,
+  CheckCircle2, Save, RefreshCw, Sparkles, Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -334,59 +334,128 @@ export default function SettingsPage() {
 
           {/* ─── PROFILE TAB ──────────────────────────────────────── */}
           {activeTab === "profile" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-400" />
-                  Your Profile
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-4 rounded-lg bg-slate-800/30 border border-white/[0.06]">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                      <span className="text-white font-bold text-lg">
-                        {session?.user?.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) ?? "UH"}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold text-white">{session?.user?.name ?? "Admin"}</p>
-                      <p className="text-sm text-slate-400">{session?.user?.email ?? "admin@upahealthsupplies.com"}</p>
-                      <Badge variant="info" className="text-[10px] mt-1">{session?.user?.role ?? "ADMIN"}</Badge>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1.5 block">Name</label>
-                      <Input defaultValue={session?.user?.name ?? ""} disabled className="opacity-60" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1.5 block">Email</label>
-                      <Input defaultValue={session?.user?.email ?? ""} disabled className="opacity-60" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1.5 block">Role</label>
-                      <Input defaultValue={session?.user?.role ?? "ADMIN"} disabled className="opacity-60" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-400 mb-1.5 block">Account Status</label>
-                      <Input defaultValue="Active" disabled className="opacity-60" />
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-xs text-amber-300">
-                      <Shield className="w-3 h-3 inline mr-1" />
-                      Profile changes require database update. Contact admin to modify name, email, or role.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ProfileSection session={session} />
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProfileSection({ session }: { session: ReturnType<typeof useSession>["data"] }) {
+  const [name, setName] = useState(session?.user?.name ?? "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [profileStatus, setProfileStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [profileMsg, setProfileMsg] = useState("");
+
+  async function updateProfile() {
+    setProfileStatus("saving");
+    setProfileMsg("");
+    try {
+      const body: Record<string, string> = {};
+      if (name !== session?.user?.name) body.name = name;
+      if (newPassword) {
+        body.currentPassword = currentPassword;
+        body.newPassword = newPassword;
+      }
+
+      if (Object.keys(body).length === 0) {
+        setProfileMsg("No changes to save");
+        setProfileStatus("idle");
+        return;
+      }
+
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setProfileStatus("success");
+        setProfileMsg(data.data.message);
+        setCurrentPassword("");
+        setNewPassword("");
+      } else {
+        setProfileStatus("error");
+        setProfileMsg(data.error?.message ?? "Failed to update");
+      }
+    } catch {
+      setProfileStatus("error");
+      setProfileMsg("Network error");
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="w-5 h-5 text-blue-400" />
+            Your Profile
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Avatar + Info */}
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-slate-800/30 border border-white/[0.06]">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                <span className="text-white font-bold text-lg">
+                  {session?.user?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) ?? "UH"}
+                </span>
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-white">{session?.user?.name ?? "Admin"}</p>
+                <p className="text-sm text-slate-400">{session?.user?.email ?? ""}</p>
+                <Badge variant="info" className="text-[10px] mt-1">{session?.user?.role ?? "ADMIN"}</Badge>
+              </div>
+            </div>
+
+            {/* Editable Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-slate-400 mb-1.5 block">Display Name</label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1.5 block">Email (cannot change)</label>
+                <Input defaultValue={session?.user?.email ?? ""} disabled className="opacity-60" />
+              </div>
+            </div>
+
+            {/* Change Password */}
+            <div className="pt-4 border-t border-white/[0.06]">
+              <p className="text-sm font-medium text-white mb-3">Change Password</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">Current Password</label>
+                  <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Enter current password" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">New Password</label>
+                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 6 characters" />
+                </div>
+              </div>
+            </div>
+
+            {/* Status */}
+            {profileMsg && (
+              <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm ${profileStatus === "success" ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" : profileStatus === "error" ? "bg-red-500/10 border border-red-500/30 text-red-400" : "bg-slate-800 text-slate-400"}`}>
+                {profileStatus === "success" ? <CheckCircle2 className="w-4 h-4" /> : profileStatus === "error" ? <Shield className="w-4 h-4" /> : null}
+                {profileMsg}
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <Button onClick={updateProfile} disabled={profileStatus === "saving"}>
+                {profileStatus === "saving" ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : <><Save className="w-3.5 h-3.5" /> Update Profile</>}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
