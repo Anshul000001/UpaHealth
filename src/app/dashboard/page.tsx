@@ -20,16 +20,32 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const [metrics, revenueByMonth, topProducts, leadsResult, productCount, tenderCount] = await Promise.all([
-    getDashboardMetrics(),
-    getRevenueByMonth(),
-    getTopProducts(5),
-    getLeads({ pageSize: 6 }),
-    prisma.product.count(),
-    prisma.tender.count({ where: { status: "open" } }),
-  ]);
+  let metrics = { totalRevenue: 0, activeQuotations: 0, conversionRate: 0, totalProducts: 0, activeSuppliers: 0, exportOrders: 0, pendingRFQs: 0, totalLeads: 0, monthlyGrowth: 0 };
+  let revenueByMonth: { month: string; revenue: number; orders: number }[] = [];
+  let topProducts: { name: string; revenue: number; units: number }[] = [];
+  let leads: Awaited<ReturnType<typeof getLeads>>["data"] = [];
+  let productCount = 0;
+  let tenderCount = 0;
 
-  const leads = leadsResult.data;
+  try {
+    const [m, r, tp, lr, pc, tc] = await Promise.all([
+      getDashboardMetrics(),
+      getRevenueByMonth(),
+      getTopProducts(5),
+      getLeads({ pageSize: 6 }),
+      prisma.product.count(),
+      prisma.tender.count({ where: { status: "open" } }),
+    ]);
+    metrics = m;
+    revenueByMonth = r;
+    topProducts = tp;
+    leads = lr.data;
+    productCount = pc;
+    tenderCount = tc;
+  } catch (err) {
+    console.error("[Dashboard] DB query failed:", err);
+  }
+
   const maxRevenue = revenueByMonth.length > 0 ? Math.max(...revenueByMonth.map((r) => r.revenue), 1) : 1;
   const firstName = session.user.name?.split(" ")[0] ?? "Admin";
 

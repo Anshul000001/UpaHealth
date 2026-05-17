@@ -18,7 +18,15 @@ export default async function CRMPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { data: leads, total } = await getLeads({ pageSize: 100 });
+  let leads: Awaited<ReturnType<typeof getLeads>>["data"] = [];
+  let total = 0;
+  try {
+    const result = await getLeads({ pageSize: 100 });
+    leads = result.data;
+    total = result.total;
+  } catch (err) {
+    console.error("[CRM] DB query failed:", err);
+  }
 
   const totalValue = leads.reduce((sum, lead) => sum + lead.estimatedValue, 0);
   const hospitals = leads.filter((l) => l.type === "HOSPITAL").length;
