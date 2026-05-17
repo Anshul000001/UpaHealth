@@ -7,7 +7,7 @@ import { LogoMark } from "@/components/brand/logo";
 import {
   LayoutDashboard, FileText, Upload, Package, Factory,
   Users, Globe, BarChart3, Bot, Settings, ChevronLeft,
-  ChevronRight, Mail, Zap, Target, Sparkles,
+  ChevronRight, Mail, Zap, Target, Sparkles, ShoppingCart,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -35,6 +35,7 @@ const navGroups: NavGroup[] = [
     label: "Procurement",
     items: [
       { label: "Quotations", href: "/dashboard/quotations", icon: FileText },
+      { label: "Catalogue", href: "/dashboard/catalogue", icon: ShoppingCart },
       { label: "RFQ Parser", href: "/dashboard/rfq", icon: Upload, badge: "AI" },
       { label: "Products", href: "/dashboard/products", icon: Package },
       { label: "Suppliers", href: "/dashboard/suppliers", icon: Factory },
