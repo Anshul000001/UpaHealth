@@ -5,6 +5,7 @@ import {
   Mail, Send, CheckCircle, AlertCircle, Loader2,
   FileText, Clock, RefreshCw, Eye, Inbox, Trash2,
   User, AtSign, ChevronDown, ChevronUp, Sparkles,
+  Archive, SendHorizonal, BookmarkPlus,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,24 @@ interface EmailDraft {
   createdAt: string;
 }
 
+interface SentEmail {
+  id: string;
+  to: string;
+  subject: string;
+  status: string;
+  template: string | null;
+  sentAt: string;
+  errorMsg: string | null;
+}
+
+interface SavedEmail {
+  id: string;
+  to: string;
+  subject: string;
+  body: string;
+  savedAt: string;
+}
+
 export default function CommunicationsPage() {
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
@@ -30,13 +49,15 @@ export default function CommunicationsPage() {
   const [sendStatus, setSendStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [sendResult, setSendResult] = useState<string>("");
   const [drafts, setDrafts] = useState<EmailDraft[]>([]);
+  const [sentEmails, setSentEmails] = useState<SentEmail[]>([]);
+  const [savedEmails, setSavedEmails] = useState<SavedEmail[]>([]);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
+  const [loadingSent, setLoadingSent] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingEmail, setEditingEmail] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<"compose" | "drafts">("compose");
+  const [tab, setTab] = useState<"compose" | "drafts" | "sent" | "saved">("compose");
   const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
-  // NVIDIA AI compose
   const [aiContext, setAiContext] = useState("");
   const [aiType, setAiType] = useState("outreach");
   const [aiLoading, setAiLoading] = useState(false);
@@ -51,7 +72,24 @@ export default function CommunicationsPage() {
     finally { setLoadingDrafts(false); }
   }, []);
 
-  useEffect(() => { loadDrafts(); }, [loadDrafts]);
+  const loadSent = useCallback(async () => {
+    setLoadingSent(true);
+    try {
+      const res = await fetch("/api/communications/history");
+      const data = await res.json();
+      if (data.success) setSentEmails(data.data);
+    } catch { /* ignore */ }
+    finally { setLoadingSent(false); }
+  }, []);
+
+  const loadSaved = useCallback(() => {
+    try {
+      const raw = localStorage.getItem("upahealth_saved_emails");
+      if (raw) setSavedEmails(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { loadDrafts(); loadSent(); loadSaved(); }, [loadDrafts, loadSent, loadSaved]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -71,6 +109,7 @@ export default function CommunicationsPage() {
         setSendStatus("success");
         setSendResult(`Email sent! Message ID: ${data.messageId}`);
         setTo(""); setSubject(""); setMessage(""); setLoadedDraftId(null);
+        loadSent(); // Refresh sent list
       } else {
         setSendStatus("error");
         setSendResult(data.message || data.error || "Failed to send");
@@ -81,18 +120,43 @@ export default function CommunicationsPage() {
     }
   }
 
+  function handleSave() {
+    if (!subject.trim() && !message.trim()) return;
+    const saved: SavedEmail = {
+      id: `saved-${Date.now()}`,
+      to: to || "Not specified",
+      subject: subject || "(No subject)",
+      body: message,
+      savedAt: new Date().toISOString(),
+    };
+    const updated = [saved, ...savedEmails];
+    setSavedEmails(updated);
+    localStorage.setItem("upahealth_saved_emails", JSON.stringify(updated));
+    setSendResult("Email saved to drafts!");
+    setSendStatus("success");
+  }
+
+  function deleteSaved(id: string) {
+    const updated = savedEmails.filter(e => e.id !== id);
+    setSavedEmails(updated);
+    localStorage.setItem("upahealth_saved_emails", JSON.stringify(updated));
+  }
+
+  function loadSavedIntoCompose(email: SavedEmail) {
+    setTo(email.to === "Not specified" ? "" : email.to);
+    setSubject(email.subject);
+    setMessage(email.body);
+    setTab("compose");
+    setSendStatus("idle");
+    setSendResult("");
+  }
+
   async function deleteDraft(id: string) {
     setDeletingId(id);
     try {
       await fetch(`/api/communications/drafts/${id}`, { method: "DELETE" });
       setDrafts((prev) => prev.filter((d) => d.id !== id));
-      if (loadedDraftId === id) {
-        setLoadedDraftId(null);
-        setSubject(""); setMessage(""); setTo("");
-      }
-    } finally {
-      setDeletingId(null);
-    }
+    } finally { setDeletingId(null); }
   }
 
   async function updateDraftEmail(id: string, toEmail: string) {
@@ -123,13 +187,8 @@ export default function CommunicationsPage() {
         body: JSON.stringify({ to, context: aiContext, type: aiType }),
       });
       const data = await res.json();
-      if (data.success) {
-        setSubject(data.data.subject);
-        setMessage(data.data.body);
-      }
-    } finally {
-      setAiLoading(false);
-    }
+      if (data.success) { setSubject(data.data.subject); setMessage(data.data.body); }
+    } finally { setAiLoading(false); }
   }
 
   return (
@@ -143,25 +202,30 @@ export default function CommunicationsPage() {
             </div>
             Communications
           </h1>
-          <p className="text-slate-400 mt-1 text-sm">Send emails · Review AI drafts · Manage outreach</p>
+          <p className="text-slate-400 mt-1 text-sm">Compose · AI Drafts · Sent History · Saved</p>
         </div>
-        <button onClick={loadDrafts} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" title="Refresh">
+        <button onClick={() => { loadDrafts(); loadSent(); }} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" title="Refresh">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-700/50 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-700/50 pb-2 overflow-x-auto">
         {([
-          { id: "compose", label: "Compose", icon: Send },
-          { id: "drafts", label: `AI Drafts (${drafts.length})`, icon: Inbox },
+          { id: "compose", label: "Compose", icon: Send, count: null },
+          { id: "drafts", label: "AI Drafts", icon: Inbox, count: drafts.length },
+          { id: "sent", label: "Sent", icon: SendHorizonal, count: sentEmails.length },
+          { id: "saved", label: "Saved", icon: Archive, count: savedEmails.length },
         ] as const).map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
               tab === t.id ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30" : "text-slate-400 hover:text-white hover:bg-slate-800"
             }`}>
             <t.icon className="w-3.5 h-3.5" />
             {t.label}
+            {t.count !== null && t.count > 0 && (
+              <span className="ml-1 text-[10px] bg-slate-700 px-1.5 py-0.5 rounded-full">{t.count}</span>
+            )}
           </button>
         ))}
       </div>
@@ -172,53 +236,45 @@ export default function CommunicationsPage() {
           {loadedDraftId && (
             <div className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5">
               <FileText className="w-4 h-4 text-cyan-400 shrink-0" />
-              <p className="text-xs text-cyan-300">
-                AI draft loaded — review, add recipient email if missing, then click Send.
-                <strong className="ml-1">Email will NOT send until you click the button.</strong>
-              </p>
+              <p className="text-xs text-cyan-300">AI draft loaded — review, edit, then Send or Save.</p>
               <button onClick={() => { setLoadedDraftId(null); setSubject(""); setMessage(""); setTo(""); }} className="ml-auto text-slate-400 hover:text-white text-xs">✕</button>
             </div>
           )}
 
+          {/* NVIDIA AI Compose */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+                <p className="text-sm font-medium text-cyan-300">NVIDIA AI Email Writer</p>
+                <Badge variant="success" className="text-[10px] ml-auto">Llama 3.1</Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                <div className="sm:col-span-2">
+                  <Input value={aiContext} onChange={(e) => setAiContext(e.target.value)} placeholder="Context: e.g. Hospital in Kenya interested in IV sets..." />
+                </div>
+                <select value={aiType} onChange={(e) => setAiType(e.target.value)}
+                  className="w-full rounded-lg border border-slate-600/50 bg-slate-800/50 px-3 py-2.5 text-sm text-white focus:border-cyan-500/50 focus:outline-none">
+                  <option value="outreach">Cold Outreach</option>
+                  <option value="followup">Follow-up</option>
+                  <option value="quotation">Quotation</option>
+                  <option value="supplier">Supplier Inquiry</option>
+                  <option value="tender">Tender Response</option>
+                </select>
+              </div>
+              <Button size="sm" variant="outline" onClick={aiCompose} disabled={aiLoading}>
+                {aiLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Writing…</> : <><Sparkles className="w-3.5 h-3.5" /> Generate with AI</>}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Compose Form */}
           <Card>
             <CardHeader><CardTitle className="text-sm">Compose Email</CardTitle></CardHeader>
             <CardContent>
-              {/* NVIDIA AI Compose Panel */}
-              <div className="mb-5 p-4 rounded-xl border border-cyan-500/20 bg-gradient-to-r from-cyan-500/5 to-blue-500/5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
-                  <p className="text-sm font-medium text-cyan-300">NVIDIA AI Email Writer</p>
-                  <Badge variant="success" className="text-[10px] ml-auto">Llama 3.1</Badge>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                  <div className="sm:col-span-2">
-                    <Input
-                      value={aiContext}
-                      onChange={(e) => setAiContext(e.target.value)}
-                      placeholder="Context: e.g. Hospital in Kenya interested in IV sets..."
-                    />
-                  </div>
-                  <div>
-                    <select
-                      value={aiType}
-                      onChange={(e) => setAiType(e.target.value)}
-                      className="w-full rounded-lg border border-slate-600/50 bg-slate-800/50 px-4 py-2.5 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
-                    >
-                      <option value="outreach">Cold Outreach</option>
-                      <option value="followup">Follow-up</option>
-                      <option value="quotation">Quotation</option>
-                      <option value="supplier">Supplier Inquiry</option>
-                      <option value="tender">Tender Response</option>
-                    </select>
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" onClick={aiCompose} disabled={aiLoading}>
-                  {aiLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Writing…</> : <><Sparkles className="w-3.5 h-3.5" /> Generate with NVIDIA AI</>}
-                </Button>
-              </div>
               <form onSubmit={handleSend} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">To (Recipient Email)</label>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">To</label>
                   <input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="recipient@hospital.com" required
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
                 </div>
@@ -229,14 +285,17 @@ export default function CommunicationsPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5">Message</label>
-                  <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Write your message here..." required rows={8}
+                  <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Write your message..." required rows={8}
                     className="w-full px-4 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none" />
                 </div>
                 <div className="flex items-center gap-3">
                   <Button type="submit" disabled={sendStatus === "sending"}>
                     {sendStatus === "sending" ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <><Send className="w-4 h-4" /> Send Email</>}
                   </Button>
-                  <p className="text-[10px] text-slate-500">Only sends when you click this button</p>
+                  <Button type="button" variant="secondary" onClick={handleSave}>
+                    <BookmarkPlus className="w-4 h-4" /> Save Draft
+                  </Button>
+                  <p className="text-[10px] text-slate-500">Send requires your permission</p>
                 </div>
               </form>
               {sendResult && (
@@ -247,168 +306,148 @@ export default function CommunicationsPage() {
               )}
             </CardContent>
           </Card>
-
-          {/* Quick Templates */}
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Quick Templates</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {[
-                  { emoji: "📋", label: "Quotation Email", sub: "Professional quotation",
-                    subject: "Your Quotation from UpaHealth Supplies 📋",
-                    body: "Dear Customer,\n\nThank you for choosing UpaHealth Supplies.\n\nPlease find the attached quotation prepared for you. We've ensured competitive pricing with the best quality products.\n\n✅ Competitive pricing\n✅ WHO-GMP & ISO certified products\n✅ Fast delivery across India & exports\n\nThis quotation is valid for 15 days.\n\nWarm regards,\nUpaHealth Supplies Team" },
-                  { emoji: "🤝", label: "Follow-up", sub: "Warm check-in",
-                    subject: "Quick Follow-up — Still interested? 🤝",
-                    body: "Hi,\n\nJust checking in about your medical supply requirements.\n\nWould you like me to:\n• Send an updated quotation?\n• Schedule a quick call?\n• Share our latest product catalog?\n\nBest regards,\nUpaHealth Supplies Team" },
-                  { emoji: "🏭", label: "Supplier Inquiry", sub: "Supplier outreach",
-                    subject: "Product Inquiry — UpaHealth Supplies",
-                    body: "Dear Supplier,\n\nGreetings from UpaHealth Supplies!\n\nWe are interested in your product range. Could you please share:\n📦 Latest product catalog\n💰 Wholesale pricing\n📋 MOQ and lead time\n📜 Certifications (ISO, CE, WHO-GMP)\n\nBest regards,\nUpaHealth Supplies Team" },
-                  { emoji: "🎉", label: "Welcome Client", sub: "Onboard new buyer",
-                    subject: "Welcome to UpaHealth Supplies! 🎉",
-                    body: "Dear Partner,\n\nWelcome aboard!\n\n🌟 Premium Quality — WHO-GMP, ISO 13485 & CE certified\n⚡ Fast Turnaround — 24-48 hours\n💰 Best Pricing — Direct from manufacturers\n🌍 Global Reach — Export to 15+ countries\n\nCheers,\nUpaHealth Supplies Team" },
-                  { emoji: "🔥", label: "Special Offer", sub: "Promotional deal",
-                    subject: "Exclusive Offer — Limited Time! 🔥",
-                    body: "Dear Customer,\n\n🔥 SPECIAL DEAL 🔥\n\n• Up to 15% OFF on bulk orders\n• FREE shipping above ₹50,000\n• Priority delivery 3-5 days\n\n⏰ Valid till end of month!\n\nUpaHealth Supplies Team" },
-                  { emoji: "🙏", label: "Order Confirmation", sub: "Thank customer",
-                    subject: "Thank You for Your Order! 🙏",
-                    body: "Dear Customer,\n\nThank you for your order! 🎊\n\nYour order is confirmed:\n1️⃣ Order Confirmed ✅\n2️⃣ Quality Check — In progress\n3️⃣ Dispatch — Within 24-48 hours\n4️⃣ Delivery — 3-7 business days\n\nUpaHealth Supplies Team" },
-                ].map((t) => (
-                  <button key={t.label} onClick={() => { setSubject(t.subject); setMessage(t.body); setLoadedDraftId(null); }}
-                    className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 text-left hover:border-cyan-500/30 hover:bg-slate-800 transition-all group">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span>{t.emoji}</span>
-                      <p className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">{t.label}</p>
-                    </div>
-                    <p className="text-xs text-slate-500">{t.sub}</p>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </>
       )}
 
-      {/* ─── DRAFTS TAB ───────────────────────────────────────────── */}
+      {/* ─── AI DRAFTS TAB ────────────────────────────────────────── */}
       {tab === "drafts" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">AI-Generated Email Drafts</p>
-              <p className="text-xs text-slate-400 mt-0.5">From Lead Gen AI — review, edit recipient, then open to send</p>
-            </div>
+            <p className="text-xs text-slate-400">AI-generated outreach emails from Lead Gen — review before sending</p>
             <Badge variant="info" className="text-[10px]">Not sent until you click Send</Badge>
           </div>
-
           {loadingDrafts ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
-            </div>
+            <div className="flex items-center justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-cyan-400" /></div>
           ) : drafts.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Inbox className="w-8 h-8 text-slate-700 mx-auto mb-2" />
-                <p className="text-sm text-slate-500">No email drafts yet</p>
-                <p className="text-xs text-slate-600 mt-1">Go to Lead Gen AI → generate leads → click "Generate Outreach Email"</p>
-              </CardContent>
-            </Card>
+            <Card><CardContent className="py-12 text-center"><Inbox className="w-8 h-8 text-slate-700 mx-auto mb-2" /><p className="text-sm text-slate-500">No AI drafts yet</p><p className="text-xs text-slate-600 mt-1">Go to Lead Gen AI → generate leads → click "Generate Outreach Email"</p></CardContent></Card>
           ) : (
             <div className="space-y-2">
               {drafts.map((draft) => {
                 const isExpanded = expandedId === draft.id;
                 const editEmail = editingEmail[draft.id] ?? draft.toEmail;
                 return (
-                  <Card key={draft.id} className={`transition-all ${loadedDraftId === draft.id ? "border-cyan-500/40" : "hover:border-slate-600"}`}>
+                  <Card key={draft.id} className="transition-all hover:border-slate-600">
                     <CardContent className="p-4">
-                      {/* Top row */}
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
                           <FileText className="w-4 h-4 text-cyan-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          {/* Lead name + status */}
                           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                            <span className="flex items-center gap-1 text-xs text-slate-400">
-                              <User className="w-3 h-3" /> {draft.leadName || "Unknown Lead"}
-                            </span>
-                            <Badge variant={draft.status === "sent" ? "success" : "default"} className="text-[10px]">
-                              {draft.status}
-                            </Badge>
+                            <span className="flex items-center gap-1 text-xs text-slate-400"><User className="w-3 h-3" /> {draft.leadName || "Unknown"}</span>
+                            <Badge variant={draft.status === "sent" ? "success" : "default"} className="text-[10px]">{draft.status}</Badge>
                           </div>
-
-                          {/* Recipient email — editable */}
                           <div className="flex items-center gap-2 mb-1">
                             <AtSign className="w-3 h-3 text-slate-500 shrink-0" />
-                            <input
-                              type="email"
-                              value={editEmail}
+                            <input type="email" value={editEmail}
                               onChange={(e) => setEditingEmail((prev) => ({ ...prev, [draft.id]: e.target.value }))}
-                              onBlur={() => {
-                                if (editEmail !== draft.toEmail) {
-                                  updateDraftEmail(draft.id, editEmail);
-                                }
-                              }}
+                              onBlur={() => { if (editEmail !== draft.toEmail) updateDraftEmail(draft.id, editEmail); }}
                               placeholder="Add recipient email…"
-                              className="flex-1 text-xs bg-transparent border-b border-slate-700 text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 py-0.5"
-                            />
+                              className="flex-1 text-xs bg-transparent border-b border-slate-700 text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 py-0.5" />
                           </div>
-
-                          {/* Subject */}
                           <p className="text-sm font-medium text-white truncate">{draft.subject}</p>
-
-                          {/* Date */}
-                          <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                            <Clock className="w-2.5 h-2.5" />
-                            {new Date(draft.createdAt).toLocaleString("en-IN")}
-                            {draft.sentAt && <span className="text-emerald-400 ml-2">Sent {new Date(draft.sentAt).toLocaleDateString("en-IN")}</span>}
-                          </p>
+                          <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5"><Clock className="w-2.5 h-2.5" />{new Date(draft.createdAt).toLocaleString("en-IN")}</p>
                         </div>
-
-                        {/* Action buttons */}
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            onClick={() => setExpandedId(isExpanded ? null : draft.id)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-                            title={isExpanded ? "Collapse" : "Preview"}
-                          >
+                          <button onClick={() => setExpandedId(isExpanded ? null : draft.id)} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
                             {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                           </button>
-                          <button
-                            onClick={() => loadDraftIntoCompose(draft)}
-                            className="p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 transition-colors"
-                            title="Open in Compose"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => deleteDraft(draft.id)}
-                            disabled={deletingId === draft.id}
-                            className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors disabled:opacity-50"
-                            title="Delete draft"
-                          >
+                          <button onClick={() => loadDraftIntoCompose(draft)} className="p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 transition-colors"><Eye className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => deleteDraft(draft.id)} disabled={deletingId === draft.id} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors disabled:opacity-50">
                             {deletingId === draft.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                           </button>
                         </div>
                       </div>
-
-                      {/* Expanded body preview */}
                       {isExpanded && (
                         <div className="mt-3 pt-3 border-t border-slate-700/50">
-                          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Email Body Preview</p>
-                          <div className="text-xs text-slate-300 bg-slate-800/50 rounded-lg px-4 py-3 whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto">
-                            {draft.body}
-                          </div>
-                          <div className="mt-2 flex items-center gap-2">
-                            <Button size="sm" variant="outline" onClick={() => loadDraftIntoCompose(draft)}>
-                              <Send className="w-3 h-3" /> Open to Send
-                            </Button>
-                            <p className="text-[10px] text-slate-500">Add recipient email above, then open to send</p>
-                          </div>
+                          <div className="text-xs text-slate-300 bg-slate-800/50 rounded-lg px-4 py-3 whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto">{draft.body}</div>
+                          <Button size="sm" variant="outline" onClick={() => loadDraftIntoCompose(draft)} className="mt-2"><Send className="w-3 h-3" /> Open to Send</Button>
                         </div>
                       )}
                     </CardContent>
                   </Card>
                 );
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── SENT TAB ─────────────────────────────────────────────── */}
+      {tab === "sent" && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-400">All emails sent from this platform</p>
+            <button onClick={loadSent} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"><RefreshCw className="w-3.5 h-3.5" /></button>
+          </div>
+          {loadingSent ? (
+            <div className="flex items-center justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-cyan-400" /></div>
+          ) : sentEmails.length === 0 ? (
+            <Card><CardContent className="py-12 text-center"><SendHorizonal className="w-8 h-8 text-slate-700 mx-auto mb-2" /><p className="text-sm text-slate-500">No emails sent yet</p><p className="text-xs text-slate-600 mt-1">Sent emails will appear here after you send from Compose</p></CardContent></Card>
+          ) : (
+            <div className="space-y-2">
+              {sentEmails.map((email) => (
+                <Card key={email.id} className="hover:border-slate-600 transition-all">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{email.subject}</p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-xs text-slate-400 flex items-center gap-1"><AtSign className="w-3 h-3" /> {email.to}</span>
+                          <span className="text-[10px] text-slate-500 flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> {new Date(email.sentAt).toLocaleString("en-IN")}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant={email.status === "sent" ? "success" : email.status === "failed" ? "danger" : "default"} className="text-[10px] shrink-0">
+                      {email.status}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── SAVED TAB ────────────────────────────────────────────── */}
+      {tab === "saved" && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-400">Manually saved email drafts (stored locally)</p>
+            <Badge variant="default" className="text-[10px]">{savedEmails.length} saved</Badge>
+          </div>
+          {savedEmails.length === 0 ? (
+            <Card><CardContent className="py-12 text-center"><Archive className="w-8 h-8 text-slate-700 mx-auto mb-2" /><p className="text-sm text-slate-500">No saved emails</p><p className="text-xs text-slate-600 mt-1">Click "Save Draft" in Compose to save emails here</p></CardContent></Card>
+          ) : (
+            <div className="space-y-2">
+              {savedEmails.map((email) => (
+                <Card key={email.id} className="hover:border-slate-600 transition-all">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                          <Archive className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{email.subject}</p>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <span className="text-xs text-slate-400">To: {email.to}</span>
+                            <span className="text-[10px] text-slate-500">{new Date(email.savedAt).toLocaleString("en-IN")}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1 line-clamp-2">{email.body.slice(0, 100)}…</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button onClick={() => loadSavedIntoCompose(email)} className="p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 transition-colors" title="Open"><Eye className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => deleteSaved(email.id)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </div>
