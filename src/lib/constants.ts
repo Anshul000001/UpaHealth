@@ -217,6 +217,7 @@ export const SUPPLIER_CERTIFICATIONS = [
 
 export const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
+  { label: "Catalogue", href: "/dashboard/catalogue", icon: "ShoppingCart" },
   { label: "Quotations", href: "/dashboard/quotations", icon: "FileText" },
   { label: "RFQ Parser", href: "/dashboard/rfq", icon: "Upload" },
   { label: "Products", href: "/dashboard/products", icon: "Package" },

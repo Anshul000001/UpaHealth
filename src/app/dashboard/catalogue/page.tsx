@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import {
   Package, Download, Plus, Trash2, Loader2, FileText,
   CheckCircle2, ShoppingCart, Search, Sparkles, Brain,
-  AlertCircle, Edit3,
+  AlertCircle, Edit3, Send, BookOpen,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { CatalogAIChat } from "@/components/dashboard/CatalogAIChat";
 
 interface Product {
   id: string;
@@ -70,6 +71,32 @@ export default function CataloguePage() {
     if (selected.find((s) => s.product.id === product.id)) return;
     setSelected([...selected, { product, quantity: product.moq, customMoq: product.moq }]);
     setAiSuggestion(null);
+  }
+
+  // Add multiple items from AI parser at once
+  function addItemsFromAI(items: Array<{
+    matchedProductId?: string;
+    quantity: number;
+    moq?: number;
+  }>) {
+    const newSelections: SelectedProduct[] = [];
+    items.forEach((item) => {
+      if (!item.matchedProductId) return;
+      const product = products.find((p) => p.id === item.matchedProductId);
+      if (!product) return;
+      // Skip if already selected
+      if (selected.find((s) => s.product.id === product.id) ||
+          newSelections.find((s) => s.product.id === product.id)) return;
+      const moq = item.moq || product.moq;
+      const qty = Math.max(item.quantity || product.moq, moq);
+      newSelections.push({ product, quantity: qty, customMoq: moq });
+    });
+    if (newSelections.length > 0) {
+      setSelected([...selected, ...newSelections]);
+      setAiSuggestion(null);
+      // Scroll to top so user sees the additions
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   function removeProduct(id: string) {
@@ -202,6 +229,115 @@ Keep it very short — 3 lines max.`
     setGenerated(true);
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // FULL CATALOG QUOTATION — one click, all products, ready to send
+  // ═══════════════════════════════════════════════════════════════
+  function downloadFullCatalogQuotation() {
+    if (products.length === 0) return;
+
+    const currSymbol = currency === "INR" ? "₹" : "$";
+    const date = new Date().toLocaleDateString("en-IN");
+
+    // Group products by category
+    const byCategory: Record<string, Product[]> = {};
+    products.forEach((p) => {
+      if (!byCategory[p.category]) byCategory[p.category] = [];
+      byCategory[p.category].push(p);
+    });
+
+    let content = ``;
+    content += `╔══════════════════════════════════════════════════════════════════════════════╗\n`;
+    content += `║          UPAHEALTH SUPPLIES — COMPLETE PRODUCT RATE LIST                   ║\n`;
+    content += `║          Surgical Consumables Catalogue & Quotation                        ║\n`;
+    content += `╚══════════════════════════════════════════════════════════════════════════════╝\n\n`;
+    content += `Date: ${date}\n`;
+    content += `Valid: May 2026\n`;
+    content += `Currency: ${currency}\n`;
+    content += `Source Brand: Romsons Scientific & Surgical\n`;
+    if (buyerName) content += `To: ${buyerName}\n`;
+    if (buyerEmail) content += `Email: ${buyerEmail}\n`;
+    content += `Total Products: ${products.length}\n`;
+    content += `\n${"━".repeat(90)}\n`;
+    content += `TERMS & CONDITIONS:\n`;
+    content += `• Prices inclusive of procurement & logistics margin\n`;
+    content += `• GST / taxes applicable as per government norms\n`;
+    content += `• Minimum order quantity (MOQ) = Box Size\n`;
+    content += `• Delivery: 7-15 working days from order confirmation\n`;
+    content += `• Payment: 50% advance, 50% before dispatch\n`;
+    content += `${"━".repeat(90)}\n\n`;
+
+    let grandTotal = 0;
+    let itemNum = 0;
+
+    const sortedCategories = Object.keys(byCategory).sort();
+    for (const cat of sortedCategories) {
+      const catProducts = byCategory[cat].sort((a, b) => a.name.localeCompare(b.name));
+      content += `\n┌─────────────────────────────────────────────────────────────────────────────┐\n`;
+      content += `│  ${cat.toUpperCase().padEnd(73)} │\n`;
+      content += `│  ${catProducts.length} products${" ".repeat(66 - catProducts.length.toString().length)}│\n`;
+      content += `└─────────────────────────────────────────────────────────────────────────────┘\n\n`;
+
+      content += `${"No.".padEnd(5)}${"SKU".padEnd(22)}${"Product Description".padEnd(48)}${"Box Size".padEnd(10)}${"Price/Pc".padEnd(12)}${"Box Price"}\n`;
+      content += `${"─".repeat(5)}${"─".repeat(22)}${"─".repeat(48)}${"─".repeat(10)}${"─".repeat(12)}${"─".repeat(12)}\n`;
+
+      for (const p of catProducts) {
+        itemNum++;
+        const price = currency === "INR" ? p.sellingPrice : p.exportPrice;
+        const boxPrice = price * p.moq;
+        grandTotal += boxPrice;
+
+        const num = `${itemNum}.`.padEnd(5);
+        const sku = p.sku.padEnd(22);
+        const name = p.name.length > 46 ? p.name.slice(0, 43) + "..." : p.name.padEnd(48);
+        const box = p.moq.toLocaleString().padEnd(10);
+        const pricePc = `${currSymbol}${price.toFixed(2)}`.padEnd(12);
+        const boxPr = `${currSymbol}${boxPrice.toLocaleString()}`;
+
+        content += `${num}${sku}${name}${box}${pricePc}${boxPr}\n`;
+      }
+      content += `\n`;
+    }
+
+    content += `\n${"═".repeat(90)}\n`;
+    content += `CATALOG SUMMARY\n`;
+    content += `${"═".repeat(90)}\n`;
+    content += `Total Products: ${products.length}\n`;
+    content += `Categories: ${sortedCategories.length}\n`;
+    content += `Full Catalog Value (1 box each): ${currSymbol}${grandTotal.toLocaleString()}\n`;
+    content += `${"═".repeat(90)}\n\n`;
+
+    if (notes) content += `SPECIAL NOTES:\n${notes}\n\n`;
+
+    content += `${"━".repeat(90)}\n`;
+    content += `UPAHEALTH SUPPLIES\n`;
+    content += `Email: adminupahealthsupplies@gmail.com\n`;
+    content += `India's AI-Enabled Healthcare Sourcing & Surgical Consumables Partner\n`;
+    content += `www.upahealthsupplies.com\n`;
+    content += `\nAnkleshwar, Gujarat, India\n`;
+    content += `All prices subject to change without notice.\n`;
+    content += `${"━".repeat(90)}\n`;
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `UpaHealth-Full-Catalog-${buyerName || "RateList"}-${date.replace(/\//g, "-")}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setGenerated(true);
+  }
+
+  // Select ALL products at once
+  function selectAllProducts() {
+    const allSelected: SelectedProduct[] = products.map((p) => ({
+      product: p,
+      quantity: p.moq,
+      customMoq: p.moq,
+    }));
+    setSelected(allSelected);
+    setAiSuggestion(null);
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -215,9 +351,65 @@ Keep it very short — 3 lines max.`
             Select products, set MOQ, get AI pricing — download requirement sheet
           </p>
         </div>
-        {selected.length > 0 && (
-          <Badge variant="info" className="text-xs">{selected.length} products selected</Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {selected.length > 0 && (
+            <Badge variant="info" className="text-xs">{selected.length} products selected</Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Quick Actions — Full Catalog Quotation */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <button
+          onClick={downloadFullCatalogQuotation}
+          disabled={products.length === 0}
+          className="flex items-center gap-3 p-4 rounded-xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-cyan-500/5 hover:border-emerald-500/40 hover:from-emerald-500/10 hover:to-cyan-500/10 transition-all group disabled:opacity-50"
+        >
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+            <Send className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-white">Send Full Catalog</p>
+            <p className="text-[10px] text-slate-400">All {products.length} products • Ready to share with buyer</p>
+          </div>
+        </button>
+
+        <button
+          onClick={selectAllProducts}
+          disabled={products.length === 0}
+          className="flex items-center gap-3 p-4 rounded-xl border border-purple-500/20 bg-gradient-to-r from-purple-500/5 to-blue-500/5 hover:border-purple-500/40 hover:from-purple-500/10 hover:to-blue-500/10 transition-all group disabled:opacity-50"
+        >
+          <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+            <BookOpen className="w-5 h-5 text-purple-400" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-white">Select All Products</p>
+            <p className="text-[10px] text-slate-400">Add all {products.length} items to selection</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => {
+            const catProducts = products.filter((p) => category !== "all" ? p.category === category : true);
+            const filtered = catProducts.filter((p) =>
+              !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
+            );
+            const newItems: SelectedProduct[] = filtered
+              .filter((p) => !selected.find((s) => s.product.id === p.id))
+              .map((p) => ({ product: p, quantity: p.moq, customMoq: p.moq }));
+            setSelected([...selected, ...newItems]);
+          }}
+          disabled={products.length === 0}
+          className="flex items-center gap-3 p-4 rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-orange-500/5 hover:border-amber-500/40 hover:from-amber-500/10 hover:to-orange-500/10 transition-all group disabled:opacity-50"
+        >
+          <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/30 transition-colors">
+            <Plus className="w-5 h-5 text-amber-400" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-white">Add by Category</p>
+            <p className="text-[10px] text-slate-400">{category === "all" ? "All categories" : category} • {filtered.length} products</p>
+          </div>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -390,6 +582,12 @@ Keep it very short — 3 lines max.`
           </Card>
         </div>
       </div>
+
+      {/* AI Catalog Builder — natural language → auto-fills selection */}
+      <CatalogAIChat
+        onAddItems={addItemsFromAI}
+        onSetBuyer={(name) => setBuyerName(name)}
+      />
     </div>
   );
 }

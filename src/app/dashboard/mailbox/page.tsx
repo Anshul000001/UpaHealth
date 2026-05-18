@@ -71,18 +71,6 @@ function formatDate(date: string): string {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
 }
 
-function fileToBase64(file: globalThis.File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(",")[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 function getCategoryIcon(category: string) {
   switch (category) {
     case "pdf": return "📄";
@@ -110,7 +98,7 @@ export default function MailboxPage() {
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
   const [composeSending, setComposeSending] = useState(false);
-  const [composeFiles, setComposeFiles] = useState<string[]>([]);
+  const [composeFiles, setComposeFiles] = useState<{id: string; name: string}[]>([]);
 
   // Files state
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -203,7 +191,7 @@ export default function MailboxPage() {
           to: composeTo,
           subject: composeSubject,
           bodyText: composeBody,
-          attachmentIds: composeFiles.length > 0 ? composeFiles : undefined,
+          attachmentIds: composeFiles.length > 0 ? composeFiles.map(f => f.id) : undefined,
         }),
       });
       const data = await res.json();
@@ -211,6 +199,8 @@ export default function MailboxPage() {
         setShowCompose(false);
         setComposeTo(""); setComposeSubject(""); setComposeBody(""); setComposeFiles([]);
         loadMessages();
+      } else {
+        alert(data.error || "Failed to send email");
       }
     } catch { /* ignore */ }
     finally { setComposeSending(false); }
@@ -228,20 +218,25 @@ export default function MailboxPage() {
         continue;
       }
       try {
-        const base64 = await fileToBase64(file);
-        const res = await fetch("/api/mailbox/files", {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/mailbox/files/upload", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filename: file.name, mimeType: file.type, data: base64 }),
+          body: formData,
         });
         const data = await res.json();
         if (data.success) {
           if (forCompose) {
-            setComposeFiles((prev) => [...prev, data.data.id]);
+            setComposeFiles((prev) => [...prev, { id: data.data.id, name: data.data.filename || file.name }]);
           }
-          loadFiles();
+          if (tab === "files") loadFiles();
+        } else {
+          alert(data.error || "Upload failed");
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        alert(`Failed to upload ${file.name}`);
+      }
     }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -598,10 +593,10 @@ export default function MailboxPage() {
               {/* Attachments in compose */}
               {composeFiles.length > 0 && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  {composeFiles.map((fid, i) => (
-                    <span key={fid} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-white/[0.06] text-xs text-slate-300">
-                      <Paperclip className="w-3 h-3" /> File {i + 1}
-                      <button onClick={() => setComposeFiles((prev) => prev.filter((id) => id !== fid))} className="text-slate-500 hover:text-red-400"><X className="w-3 h-3" /></button>
+                  {composeFiles.map((f) => (
+                    <span key={f.id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-white/[0.06] text-xs text-slate-300">
+                      <Paperclip className="w-3 h-3" /> {f.name}
+                      <button onClick={() => setComposeFiles((prev) => prev.filter((item) => item.id !== f.id))} className="text-slate-500 hover:text-red-400"><X className="w-3 h-3" /></button>
                     </span>
                   ))}
                 </div>

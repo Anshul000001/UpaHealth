@@ -31,6 +31,9 @@ const nextConfig: NextConfig = {
       "recharts",
       "date-fns",
     ],
+    serverActions: {
+      bodySizeLimit: "15mb",
+    },
   },
 
   // Bundle external native deps so Next.js doesn't try to bundle them client-side

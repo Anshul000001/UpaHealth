@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Mail, Send, CheckCircle, AlertCircle, Loader2,
   FileText, Clock, RefreshCw, Eye, Inbox, Trash2,
   User, AtSign, ChevronDown, ChevronUp, Sparkles,
-  Archive, SendHorizonal, BookmarkPlus,
+  Archive, SendHorizonal, BookmarkPlus, Paperclip, X, File,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,27 @@ interface SavedEmail {
   savedAt: string;
 }
 
+interface Attachment {
+  id: string;
+  filename: string;
+  size: number;
+  uploading?: boolean;
+}
+
+function fileToBase64(file: globalThis.File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Remove data URL prefix to get pure base64
+      const base64 = result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function CommunicationsPage() {
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
@@ -61,6 +82,9 @@ export default function CommunicationsPage() {
   const [aiContext, setAiContext] = useState("");
   const [aiType, setAiType] = useState("outreach");
   const [aiLoading, setAiLoading] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadDrafts = useCallback(async () => {
     setLoadingDrafts(true);
@@ -189,6 +213,55 @@ export default function CommunicationsPage() {
       const data = await res.json();
       if (data.success) { setSubject(data.data.subject); setMessage(data.data.body); }
     } finally { setAiLoading(false); }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (const file of Array.from(files)) {
+      if (file.size > 4 * 1024 * 1024) {
+        alert(`${file.name} is too large. Max 4MB per file.`);
+        continue;
+      }
+
+      setUploading(true);
+      const tempId = `temp-${Date.now()}-${file.name}`;
+      setAttachments(prev => [...prev, { id: tempId, filename: file.name, size: file.size, uploading: true }]);
+
+      try {
+        const base64 = await fileToBase64(file);
+        const res = await fetch("/api/communications/attachments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name, mimeType: file.type, data: base64 }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setAttachments(prev => prev.map(a => a.id === tempId ? { id: data.data.id, filename: data.data.filename, size: data.data.size } : a));
+        } else {
+          setAttachments(prev => prev.filter(a => a.id !== tempId));
+          alert(data.error?.message || "Upload failed");
+        }
+      } catch {
+        setAttachments(prev => prev.filter(a => a.id !== tempId));
+      }
+      setUploading(false);
+    }
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments(prev => prev.filter(a => a.id !== id));
+    // Delete from server in background
+    fetch(`/api/communications/attachments/${id}`, { method: "DELETE" }).catch(() => {});
+  }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   return (

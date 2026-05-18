@@ -53,7 +53,7 @@ export const POST = apiHandler(async (req) => {
   const { to, toName, subject, bodyText, bodyHtml, cc, replyTo, threadId, attachmentIds, relatedType, relatedId } = parsed.data;
 
   // Get attachments if any
-  let attachments: Array<{ filename: string; content: Buffer; contentType: string }> = [];
+  let attachments: Array<{ filename: string; content: string; encoding: string; contentType: string }> = [];
   if (attachmentIds && attachmentIds.length > 0) {
     const files = await prisma.sharedFile.findMany({
       where: { id: { in: attachmentIds } },
@@ -61,9 +61,11 @@ export const POST = apiHandler(async (req) => {
     });
     attachments = files.map((f) => ({
       filename: f.filename,
-      content: Buffer.from(f.data, "base64"),
-      contentType: f.mimeType,
+      content: f.data, // already base64
+      encoding: "base64",
+      contentType: f.mimeType || "application/octet-stream",
     }));
+    console.log(`[Mailbox Send] Attaching ${attachments.length} files:`, attachments.map(a => `${a.filename} (${a.content.length} base64 chars)`));
   }
 
   const fromEmail = process.env.GMAIL_USER || "noreply@upahealthsupplies.com";

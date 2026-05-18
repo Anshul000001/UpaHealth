@@ -23,6 +23,7 @@ export interface SendEmailOptions {
     content?: string | Buffer;
     path?: string;
     contentType?: string;
+    encoding?: string;
   }>;
 }
 
