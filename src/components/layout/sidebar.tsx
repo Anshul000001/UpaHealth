@@ -8,6 +8,7 @@ import {
   LayoutDashboard, FileText, Upload, Package, Factory,
   Users, Globe, BarChart3, Bot, Settings, ChevronLeft,
   ChevronRight, Mail, Zap, Target, Sparkles, ShoppingCart,
+  Mailbox,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -46,6 +47,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "CRM", href: "/dashboard/crm", icon: Users },
       { label: "Lead Gen AI", href: "/dashboard/lead-gen", icon: Target, badge: "AI" },
+      { label: "Mailbox", href: "/dashboard/mailbox", icon: Mailbox, badge: "New" },
       { label: "Communications", href: "/dashboard/communications", icon: Mail },
     ],
   },

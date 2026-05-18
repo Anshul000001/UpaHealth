@@ -542,3 +542,103 @@ model AppSetting {
 
   @@map("app_settings")
 }
+
+// ============================================
+// EMAIL ATTACHMENTS
+// ============================================
+
+model EmailAttachment {
+  id        String   @id @default(cuid())
+  filename  String
+  mimeType  String
+  size      Int      // bytes
+  data      String   @db.Text // base64 encoded
+  createdAt DateTime @default(now())
+
+  @@map("email_attachments")
+}
+
+// ============================================
+// MAILBOX — INBOX, THREADS & FILE SHARING
+// ============================================
+
+model MailboxMessage {
+  id          String   @id @default(cuid())
+  threadId    String?  // Group into conversation threads
+  direction   String   // "inbound" or "outbound"
+  from        String   // Sender email
+  fromName    String?  // Sender display name
+  to          String   // Recipient email
+  toName      String?  // Recipient display name
+  cc          String?
+  subject     String
+  bodyText    String?  @db.Text
+  bodyHtml    String?  @db.Text
+  snippet     String?  // First ~100 chars preview
+  status      String   @default("unread") // unread, read, archived, starred, trash
+  starred     Boolean  @default(false)
+  labels      String[] // "important", "customer", "supplier", etc.
+  messageId   String?  // SMTP message ID for threading
+  inReplyTo   String?  // SMTP In-Reply-To header
+  references  String[] // SMTP References header
+  relatedType String?  // "lead", "quotation", "customer"
+  relatedId   String?
+  sentAt      DateTime @default(now())
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  thread      MailThread?      @relation(fields: [threadId], references: [id])
+  attachments SharedFile[]
+
+  @@index([threadId])
+  @@index([from])
+  @@index([to])
+  @@index([status])
+  @@index([sentAt])
+  @@map("mailbox_messages")
+}
+
+model MailThread {
+  id              String   @id @default(cuid())
+  subject         String
+  participants    String[] // All email addresses in the thread
+  lastMessageAt   DateTime @default(now())
+  messageCount    Int      @default(1)
+  unreadCount     Int      @default(0)
+  status          String   @default("active") // active, archived, trash
+  starred         Boolean  @default(false)
+  labels          String[]
+  relatedType     String?  // "lead", "quotation", "customer"
+  relatedId       String?
+  createdAt       DateTime @default(now())
+
+  messages MailboxMessage[]
+
+  @@index([lastMessageAt])
+  @@index([status])
+  @@map("mail_threads")
+}
+
+model SharedFile {
+  id            String   @id @default(cuid())
+  filename      String
+  mimeType      String
+  size          Int      // bytes
+  data          String   @db.Text // base64 encoded
+  description   String?
+  category      String   @default("general") // "pdf", "catalog", "quotation", "brochure", "certificate"
+  sharedWith    String[] // Email addresses shared with
+  relatedType   String?  // "lead", "customer", "supplier"
+  relatedId     String?
+  messageId     String?  // Linked to a mailbox message
+  downloadCount Int      @default(0)
+  uploadedById  String?
+  createdAt     DateTime @default(now())
+
+  message MailboxMessage? @relation(fields: [messageId], references: [id])
+
+  @@index([category])
+  @@index([messageId])
+  @@index([uploadedById])
+  @@map("shared_files")
+}
