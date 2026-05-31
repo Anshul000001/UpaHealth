@@ -90,6 +90,8 @@ export function buildQuotationEmail(params: {
           <p style="margin-top: 30px;">
             Best regards,<br/>
             <strong>UpaHealth Supplies Team</strong><br/>
+            <a href="tel:+919274842737" style="color:#0f766e;text-decoration:none">📞 +91 92748 42737</a> &nbsp;|&nbsp;
+            <a href="mailto:adminupahealthsupplies@gmail.com" style="color:#0f766e;text-decoration:none">📧 adminupahealthsupplies@gmail.com</a><br/>
             <a href="https://www.upahealthsupplies.com">www.upahealthsupplies.com</a>
           </p>
         </div>
@@ -124,6 +126,8 @@ export function buildFollowUpEmail(params: {
           <p style="margin-top: 30px;">
             Best regards,<br/>
             <strong>UpaHealth Supplies Team</strong><br/>
+            <a href="tel:+919274842737" style="color:#0f766e;text-decoration:none">📞 +91 92748 42737</a> &nbsp;|&nbsp;
+            <a href="mailto:adminupahealthsupplies@gmail.com" style="color:#0f766e;text-decoration:none">📧 adminupahealthsupplies@gmail.com</a><br/>
             <a href="https://www.upahealthsupplies.com">www.upahealthsupplies.com</a>
           </p>
         </div>

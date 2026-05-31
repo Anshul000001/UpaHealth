@@ -18,10 +18,11 @@ interface FullCatalogOptions {
   buyerEmail: string;
   currency: "INR" | "USD";
   notes: string;
+  companyRef?: string;
 }
 
 export function generateFullCatalogPDF(options: FullCatalogOptions): jsPDF {
-  const { products, buyerName, buyerEmail, currency, notes } = options;
+  const { products, buyerName, buyerEmail, currency, notes, companyRef } = options;
   const currSymbol = currency === "INR" ? "\u20B9" : "$";
   const date = new Date().toLocaleDateString("en-IN", {
     day: "2-digit", month: "short", year: "numeric",
@@ -60,6 +61,14 @@ export function generateFullCatalogPDF(options: FullCatalogOptions): jsPDF {
   doc.setFontSize(10);
   doc.setTextColor(148, 163, 184);
   doc.text("Surgical Consumables Catalogue & Quotation", pageWidth / 2, 113, { align: "center" });
+
+  // Company Reference Number
+  if (companyRef) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(16, 185, 129);
+    doc.text(`Ref: ${companyRef}`, pageWidth / 2, 120, { align: "center" });
+  }
 
   // Stats
   const categories = [...new Set(products.map(p => p.category))];
@@ -120,7 +129,7 @@ export function generateFullCatalogPDF(options: FullCatalogOptions): jsPDF {
   doc.setFontSize(7);
   doc.setTextColor(100, 116, 139);
   doc.text("UpaHealth Supplies | Ankleshwar, Gujarat, India", pageWidth / 2, pageHeight - 12, { align: "center" });
-  doc.text("adminupahealthsupplies@gmail.com | www.upahealthsupplies.com", pageWidth / 2, pageHeight - 7, { align: "center" });
+  doc.text("+91 92748 42737 | adminupahealthsupplies@gmail.com | www.upahealthsupplies.com", pageWidth / 2, pageHeight - 7, { align: "center" });
 
   // ─── Category Pages ───────────────────────────────────
   const byCategory: Record<string, CatalogProduct[]> = {};

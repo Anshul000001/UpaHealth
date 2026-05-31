@@ -69,7 +69,7 @@ export const POST = apiHandler(async (req) => {
   }
 
   const fromEmail = process.env.GMAIL_USER || "noreply@upahealthsupplies.com";
-  const html = bodyHtml || `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><div style="background:#0f766e;padding:20px;text-align:center"><h1 style="color:white;margin:0">UpaHealth Supplies</h1><p style="color:#ccfbf1;margin:5px 0 0">Your Path to Wellness</p></div><div style="padding:30px;background:#f9fafb"><p>${(bodyText || "").replace(/\n/g, "<br/>")}</p><p style="margin-top:30px;color:#6b7280;font-size:14px">Sent from UpaHealth<br/><a href="https://www.upahealthsupplies.com">www.upahealthsupplies.com</a></p></div></div>`;
+  const html = bodyHtml || `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><div style="background:#0f766e;padding:20px;text-align:center"><h1 style="color:white;margin:0">UpaHealth Supplies</h1><p style="color:#ccfbf1;margin:5px 0 0">Your Path to Wellness</p></div><div style="padding:30px;background:#f9fafb"><p>${(bodyText || "").replace(/\n/g, "<br/>")}</p><p style="margin-top:30px;color:#6b7280;font-size:14px"><strong>UpaHealth Supplies</strong><br/>📞 +91 92748 42737 &nbsp;|&nbsp; 📧 adminupahealthsupplies@gmail.com<br/><a href="https://www.upahealthsupplies.com">www.upahealthsupplies.com</a></p></div></div>`;
 
   try {
     const result = await sendEmail({

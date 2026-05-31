@@ -46,6 +46,7 @@ interface QuotationItem {
 
 export default function QuotationsPage() {
   const [quotationId] = useState(generateQuotationId());
+  const [companyRef, setCompanyRef] = useState("");
   const [currency, setCurrency] = useState("INR");
   const [items, setItems] = useState<QuotationItem[]>([]);
   const [buyerName, setBuyerName] = useState("");
@@ -59,6 +60,16 @@ export default function QuotationsPage() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
   const [emailMessage, setEmailMessage] = useState("");
+
+  // Fetch company reference number preview on mount
+  useEffect(() => {
+    fetch("/api/reference-number?type=QT&action=preview")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) setCompanyRef(res.data.referenceNumber);
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch products from API on mount
   useEffect(() => {
@@ -135,8 +146,26 @@ export default function QuotationsPage() {
   const currencySymbol = CURRENCIES.find((c) => c.code === currency)?.symbol || "₹";
 
   const handleDownloadPDF = async () => {
+    // Reserve the company reference number when generating PDF
+    let finalRef = companyRef;
+    try {
+      const refRes = await fetch("/api/reference-number", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "QT" }),
+      });
+      const refData = await refRes.json();
+      if (refData.success) {
+        finalRef = refData.data.referenceNumber;
+        setCompanyRef(finalRef);
+      }
+    } catch {
+      // Use preview ref if generation fails
+    }
+
     await generateQuotationPDF({
       quotationId,
+      companyRef: finalRef,
       buyerName: buyerName || "Unnamed Buyer",
       buyerEmail,
       buyerAddress,
@@ -265,10 +294,31 @@ export default function QuotationsPage() {
                   <FileText className="w-5 h-5 text-cyan-400" />
                   Quotation Details
                 </CardTitle>
-                <Badge variant="info">{quotationId}</Badge>
+                <div className="flex items-center gap-2">
+                  {companyRef && (
+                    <Badge variant="success" className="font-mono text-xs">
+                      {companyRef}
+                    </Badge>
+                  )}
+                  <Badge variant="info">{quotationId}</Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
+              {companyRef && (
+                <div className="mb-4 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider">Company Reference No.</p>
+                      <p className="text-sm font-mono font-bold text-emerald-400 mt-0.5">{companyRef}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider">Document ID</p>
+                      <p className="text-sm font-mono text-slate-300 mt-0.5">{quotationId}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-slate-400 mb-1.5 block">Buyer / Hospital Name</label>

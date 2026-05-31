@@ -53,12 +53,23 @@ export default function CataloguePage() {
   const [generated, setGenerated] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
+  const [catalogRef, setCatalogRef] = useState("");
 
   useEffect(() => {
     fetch("/api/products?pageSize=200")
       .then((r) => r.json())
       .then((data) => { if (data.success) setProducts(data.data); })
       .finally(() => setLoading(false));
+  }, []);
+
+  // Fetch catalog reference number preview
+  useEffect(() => {
+    fetch("/api/reference-number?type=CAT&action=preview")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) setCatalogRef(res.data.referenceNumber);
+      })
+      .catch(() => {});
   }, []);
 
   const categories = [...new Set(products.map((p) => p.category))].sort();
@@ -186,6 +197,18 @@ Keep it very short — 3 lines max.`
   function downloadCatalogue() {
     const date = new Date().toLocaleDateString("en-IN");
 
+    // Reserve catalog reference number
+    fetch("/api/reference-number", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "CAT" }),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) setCatalogRef(res.data.referenceNumber);
+      })
+      .catch(() => {});
+
     const items = selected.map((s) => {
       const price = currency === "INR" ? s.product.sellingPrice : s.product.exportPrice;
       return {
@@ -212,6 +235,7 @@ Keep it very short — 3 lines max.`
       notes,
       aiSuggestion: aiSuggestion?.suggestion,
       total: getTotal(),
+      companyRef: catalogRef,
     });
 
     doc.save(`UpaHealth-Requirement-${buyerName || "Sheet"}-${date.replace(/\//g, "-")}.pdf`);
@@ -224,6 +248,18 @@ Keep it very short — 3 lines max.`
   function downloadFullCatalogQuotation() {
     if (products.length === 0) return;
     const date = new Date().toLocaleDateString("en-IN");
+
+    // Reserve catalog reference number
+    fetch("/api/reference-number", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "CAT" }),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) setCatalogRef(res.data.referenceNumber);
+      })
+      .catch(() => {});
 
     const catalogProducts = products.map((p) => ({
       name: p.name,
@@ -242,6 +278,7 @@ Keep it very short — 3 lines max.`
       buyerEmail,
       currency,
       notes,
+      companyRef: catalogRef,
     });
 
     doc.save(`UpaHealth-Full-Catalog-${buyerName || "RateList"}-${date.replace(/\//g, "-")}.pdf`);
@@ -273,6 +310,9 @@ Keep it very short — 3 lines max.`
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {catalogRef && (
+            <Badge variant="success" className="text-xs font-mono">{catalogRef}</Badge>
+          )}
           {selected.length > 0 && (
             <Badge variant="info" className="text-xs">{selected.length} products selected</Badge>
           )}

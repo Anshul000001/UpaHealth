@@ -28,6 +28,7 @@ About UpaHealth:
 - 131+ products: IV sets, cannulas, surgical instruments, wound care, PPE, diagnostics
 - ISO 13485, CE Mark, WHO GMP certified suppliers
 - Export to East Africa, GCC, SAARC
+- Phone: +91 92748 42737
 - Email: adminupahealthsupplies@gmail.com
 
 Rules:

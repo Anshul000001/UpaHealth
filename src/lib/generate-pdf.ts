@@ -15,6 +15,7 @@ interface QuotationItem {
 
 interface QuotationData {
   quotationId: string;
+  companyRef?: string;
   buyerName: string;
   buyerEmail: string;
   buyerAddress: string;
@@ -138,7 +139,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<void> {
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.text("AI-Enabled Healthcare Sourcing Intelligence", margin + 38, 36);
-  doc.text(COMPANY_INFO.email, margin + 38, 41);
+  doc.text(`${COMPANY_INFO.phone} | ${COMPANY_INFO.email}`, margin + 38, 41);
 
   // QUOTATION title — right aligned, brand-blue.
   doc.setTextColor(...brandBlue);
@@ -146,21 +147,36 @@ export async function generateQuotationPDF(data: QuotationData): Promise<void> {
   doc.setFont("helvetica", "bold");
   doc.text("QUOTATION", pageWidth - margin, 24, { align: "right" });
 
-  // Quotation ID
-  doc.setTextColor(...textColor);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Ref: ${data.quotationId}`, pageWidth - margin, 32, { align: "right" });
-  doc.text(`Date: ${new Date().toLocaleDateString("en-IN")}`, pageWidth - margin, 38, { align: "right" });
-  doc.text(`Valid for: ${data.validityDays} days`, pageWidth - margin, 44, { align: "right" });
+  // Company Reference Number (prominent)
+  if (data.companyRef) {
+    doc.setTextColor(...brandTeal);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(data.companyRef, pageWidth - margin, 32, { align: "right" });
+    doc.setTextColor(...textColor);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Doc ID: ${data.quotationId}`, pageWidth - margin, 38, { align: "right" });
+    doc.text(`Date: ${new Date().toLocaleDateString("en-IN")}`, pageWidth - margin, 44, { align: "right" });
+    doc.text(`Valid for: ${data.validityDays} days`, pageWidth - margin, 50, { align: "right" });
+  } else {
+    // Quotation ID (fallback if no company ref)
+    doc.setTextColor(...textColor);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Ref: ${data.quotationId}`, pageWidth - margin, 32, { align: "right" });
+    doc.text(`Date: ${new Date().toLocaleDateString("en-IN")}`, pageWidth - margin, 38, { align: "right" });
+    doc.text(`Valid for: ${data.validityDays} days`, pageWidth - margin, 44, { align: "right" });
+  }
 
   // Divider line — brand teal.
+  const dividerY = data.companyRef ? 56 : 50;
   doc.setDrawColor(...brandTeal);
   doc.setLineWidth(0.5);
-  doc.line(margin, 50, pageWidth - margin, 50);
+  doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
   // === BUYER DETAILS ===
-  let yPos = 60;
+  let yPos = dividerY + 10;
 
   doc.setTextColor(...lightGray);
   doc.setFontSize(8);
@@ -331,7 +347,7 @@ export async function generateQuotationPDF(data: QuotationData): Promise<void> {
   doc.setTextColor(...lightGray);
   doc.setFontSize(7);
   doc.text("UpaHealth Supplies | Your Path to Wellness", margin, footerY);
-  doc.text(COMPANY_INFO.email, margin, footerY + 5);
+  doc.text(`${COMPANY_INFO.phone} | ${COMPANY_INFO.email}`, margin, footerY + 5);
 
   doc.setTextColor(...brandTeal);
   doc.text(COMPANY_INFO.website, pageWidth - margin, footerY, { align: "right" });

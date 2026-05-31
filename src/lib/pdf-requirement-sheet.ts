@@ -24,10 +24,11 @@ interface RequirementSheetOptions {
   notes: string;
   aiSuggestion?: string;
   total: number;
+  companyRef?: string;
 }
 
 export function generateRequirementSheetPDF(options: RequirementSheetOptions): jsPDF {
-  const { items, buyerName, buyerEmail, currency, notes, aiSuggestion, total } = options;
+  const { items, buyerName, buyerEmail, currency, notes, aiSuggestion, total, companyRef } = options;
   const currSymbol = currency === "INR" ? "\u20B9" : "$";
   const date = new Date().toLocaleDateString("en-IN", {
     day: "2-digit", month: "short", year: "numeric",
@@ -67,7 +68,7 @@ export function generateRequirementSheetPDF(options: RequirementSheetOptions): j
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184);
   doc.text(`Date: ${date} | Currency: ${currency}`, pageWidth - 18, 28, { align: "right" });
-  doc.text(`Ref: UH-REQ-${Date.now().toString(36).toUpperCase().slice(0, 8)}`, pageWidth - 18, 34, { align: "right" });
+  doc.text(`Ref: ${companyRef || `UH-REQ-${Date.now().toString(36).toUpperCase().slice(0, 8)}`}`, pageWidth - 18, 34, { align: "right" });
 
   // Buyer Info
   let yPos = 52;
@@ -251,7 +252,7 @@ export function generateRequirementSheetPDF(options: RequirementSheetOptions): j
     doc.text("UpaHealth Supplies", 14, pageHeight - 8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(148, 163, 184);
-    doc.text("adminupahealthsupplies@gmail.com | www.upahealthsupplies.com", 14, pageHeight - 4);
+    doc.text("+91 92748 42737 | adminupahealthsupplies@gmail.com | www.upahealthsupplies.com", 14, pageHeight - 4);
     doc.setFontSize(6.5);
     doc.setTextColor(100, 116, 139);
     doc.text(`Page ${i} of ${pageCount}`, pageWidth - 14, pageHeight - 5, { align: "right" });

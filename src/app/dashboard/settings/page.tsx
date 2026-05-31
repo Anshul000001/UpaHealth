@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  User, Building2, Bell, Shield, Key,
+  User, Building2, Bell, Shield, Key, Hash,
   CheckCircle2, Save, RefreshCw, Sparkles, Loader2,
   Activity, XCircle, Brain,
 } from "lucide-react";
@@ -18,7 +18,7 @@ interface DiagCheck {
   detail: string;
 }
 
-type Tab = "company" | "quotation" | "notifications" | "integrations" | "profile" | "diagnostics";
+type Tab = "company" | "quotation" | "numbering" | "notifications" | "integrations" | "profile" | "diagnostics";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -30,6 +30,15 @@ export default function SettingsPage() {
   const [diagChecks, setDiagChecks] = useState<DiagCheck[]>([]);
   const [diagLoading, setDiagLoading] = useState(false);
   const [diagHealthy, setDiagHealthy] = useState<boolean | null>(null);
+
+  // Helper: get current financial year string
+  function getCurrentFY(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    if (month >= 3) return `${year}-${(year + 1).toString().slice(2)}`;
+    return `${year - 1}-${year.toString().slice(2)}`;
+  }
 
   // Load settings from Supabase
   useEffect(() => {
@@ -86,6 +95,7 @@ export default function SettingsPage() {
   const tabs: { id: Tab; label: string; icon: typeof Building2 }[] = [
     { id: "company", label: "Company", icon: Building2 },
     { id: "quotation", label: "Quotation", icon: Key },
+    { id: "numbering", label: "Reference Numbers", icon: Hash },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "integrations", label: "Integrations", icon: Sparkles },
     { id: "profile", label: "Profile", icon: User },
@@ -140,7 +150,7 @@ export default function SettingsPage() {
                   {[
                     { key: "companyName", label: "Company Name", fallback: "UpaHealth Supplies" },
                     { key: "companyEmail", label: "Email", fallback: "adminupahealthsupplies@gmail.com" },
-                    { key: "phone", label: "Phone", fallback: "" },
+                    { key: "phone", label: "Phone", fallback: "+91 92748 42737" },
                     { key: "website", label: "Website", fallback: "www.upahealthsupplies.com" },
                     { key: "gst", label: "GST Number", fallback: "PENDING" },
                     { key: "iec", label: "IEC Code", fallback: "PENDING" },
@@ -196,6 +206,71 @@ export default function SettingsPage() {
                       className="w-full rounded-lg border border-slate-600/50 bg-slate-800/50 px-4 py-2.5 text-sm text-white focus:border-cyan-500/50 focus:outline-none resize-none" />
                   </div>
                 </div>
+                <div className="flex justify-end mt-6">
+                  <Button onClick={saveAll} disabled={saving}><Save className="w-3.5 h-3.5" /> Save</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ─── REFERENCE NUMBERS ────────────────────────────────── */}
+          {activeTab === "numbering" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Hash className="w-5 h-5 text-cyan-400" /> Company Reference Numbers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-slate-400 mb-4">
+                  Configure your company reference prefix and numbering format. All quotations, catalogs, and projects will use sequential numbering that resets each financial year (April–March).
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1.5 block">Company Prefix</label>
+                    <Input
+                      value={get("companyRefPrefix", "UH")}
+                      onChange={(e) => set("companyRefPrefix", e.target.value.toUpperCase())}
+                      placeholder="e.g., UH, UPA, UPAHEALTH"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">Used in all reference numbers (e.g., UH/2025-26/QT/0001)</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1.5 block">Financial Year</label>
+                    <Input value={getCurrentFY()} disabled className="opacity-60" />
+                    <p className="text-[10px] text-slate-500 mt-1">Auto-detected (April to March)</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 p-4 rounded-lg bg-slate-800/30 border border-white/[0.06]">
+                  <p className="text-xs font-medium text-white mb-3">Reference Number Format Preview</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { type: "QT", label: "Quotation", example: `${get("companyRefPrefix", "UH")}/${getCurrentFY()}/QT/0001` },
+                      { type: "CAT", label: "Catalog", example: `${get("companyRefPrefix", "UH")}/${getCurrentFY()}/CAT/0001` },
+                      { type: "PRJ", label: "Project", example: `${get("companyRefPrefix", "UH")}/${getCurrentFY()}/PRJ/0001` },
+                      { type: "RFQ", label: "RFQ", example: `${get("companyRefPrefix", "UH")}/${getCurrentFY()}/RFQ/0001` },
+                      { type: "REQ", label: "Requirement", example: `${get("companyRefPrefix", "UH")}/${getCurrentFY()}/REQ/0001` },
+                      { type: "PO", label: "Purchase Order", example: `${get("companyRefPrefix", "UH")}/${getCurrentFY()}/PO/0001` },
+                    ].map((item) => (
+                      <div key={item.type} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/50 border border-white/5">
+                        <span className="text-xs text-slate-400">{item.label}</span>
+                        <code className="text-xs text-cyan-400 font-mono">{item.example}</code>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 p-4 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                  <p className="text-xs text-emerald-400 font-medium mb-1">How it works</p>
+                  <ul className="text-[10px] text-slate-400 space-y-1 list-disc list-inside">
+                    <li>Numbers auto-increment sequentially for each document type</li>
+                    <li>Counters reset at the start of each financial year (1st April)</li>
+                    <li>Format: <code className="text-cyan-400">PREFIX/FY/TYPE/SERIAL</code></li>
+                    <li>Easy to search and track any document by its reference number</li>
+                  </ul>
+                </div>
+
                 <div className="flex justify-end mt-6">
                   <Button onClick={saveAll} disabled={saving}><Save className="w-3.5 h-3.5" /> Save</Button>
                 </div>

@@ -27,6 +27,52 @@ export function generateQuotationId(): string {
   return `${prefix}-${date}-${random}`;
 }
 
+/**
+ * Get the current financial year string (e.g., "2025-26").
+ */
+export function getFinancialYear(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed
+  // Indian financial year: April to March
+  if (month >= 3) {
+    // April onwards = current year to next year
+    return `${year}-${(year + 1).toString().slice(2)}`;
+  }
+  // Jan-March = previous year to current year
+  return `${year - 1}-${year.toString().slice(2)}`;
+}
+
+/**
+ * Generate a professional company reference number.
+ * Format: {prefix}/{FY}/{type}/{sequential}
+ * e.g., UH/2025-26/QT/0001, UH/2025-26/CAT/0015, UH/2025-26/PRJ/0003
+ */
+export function formatCompanyRef(
+  prefix: string,
+  type: "QT" | "CAT" | "PRJ" | "RFQ" | "REQ" | "PO",
+  sequentialNumber: number
+): string {
+  const fy = getFinancialYear();
+  const seq = sequentialNumber.toString().padStart(4, "0");
+  return `${prefix}/${fy}/${type}/${seq}`;
+}
+
+/**
+ * Generate a project/document tracking number.
+ * Format: {prefix}-{type}-{YYYYMMDD}-{seq}
+ * e.g., UH-QT-20250527-0001
+ */
+export function formatDocumentNumber(
+  prefix: string,
+  type: string,
+  sequentialNumber: number
+): string {
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const seq = sequentialNumber.toString().padStart(4, "0");
+  return `${prefix}-${type}-${date}-${seq}`;
+}
+
 export function calculateMargin(costPrice: number, sellingPrice: number): number {
   return ((sellingPrice - costPrice) / sellingPrice) * 100;
 }

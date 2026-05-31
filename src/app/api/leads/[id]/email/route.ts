@@ -35,6 +35,7 @@ About UpaHealth:
 - ISO 13485, CE Mark, WHO GMP certified suppliers
 - Export to East Africa, GCC, SAARC
 - Competitive pricing with bulk supply capability
+- Phone: +91 92748 42737
 - Email: adminupahealthsupplies@gmail.com
 
 Rules:

@@ -2,6 +2,7 @@ export const COMPANY_INFO = {
   name: "UpaHealth Supplies",
   tagline: "Your Path to Wellness",
   email: "adminupahealthsupplies@gmail.com",
+  phone: "+91 92748 42737",
   website: "www.upahealthsupplies.com",
   address: "India",
   gst: "PENDING",
